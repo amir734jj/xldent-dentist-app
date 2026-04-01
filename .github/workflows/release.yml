@@ -82,5 +82,5 @@ jobs:
           --tag         v${{ steps.ver.outputs.VERSION }}
           --releaseName "XLDent v${{ steps.ver.outputs.VERSION }}"
           --publish
-          --inputDir    releases/${{ matrix.rid }}
+          --outputDir   releases/${{ matrix.rid }}
 
