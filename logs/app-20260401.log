@@ -1,0 +1,45 @@
+[2026-04-01 15:11:31 INF] Searching for patients with name Hesamian
+[2026-04-01 15:11:32 INF] Executed DbCommand (18ms) [Parameters=[@name='?' (Size = 15), @name0='?' (Size = 20), @name1='?' (Size = 40)], CommandType='"Text"', CommandTimeout='30']
+SELECT `p`.`PMecano` AS `Pmecano`, `p`.`PFirst` AS `Pfirst`, `p`.`PLast` AS `Plast`, `p`.`PNome` AS `Pnome`, `p`.`PTlfCasa` AS `PtlfCasa`, `p`.`PTMovel` AS `Ptmovel`, `p`.`PTlfEmpr` AS `PtlfEmpr`, `p`.`PEmail` AS `Pemail`, `p`.`PMorada` AS `Pmorada`, `p`.`PCity` AS `Pcity`, `p`.`PState` AS `Pstate`, `p`.`PZip` AS `Pzip`, `p`.`PCountry` AS `Pcountry`, `p`.`PStatus` AS `Pstatus`, `p`.`PNascim` AS `Pnascim`
+FROM `paciente` AS `p`
+WHERE ((`p`.`PFirst` IS NOT NULL AND ((@name LIKE '') OR (LOCATE(@name, `p`.`PFirst`) > 0))) OR (`p`.`PLast` IS NOT NULL AND ((@name0 LIKE '') OR (LOCATE(@name0, `p`.`PLast`) > 0)))) OR ((@name1 LIKE '') OR (LOCATE(@name1, `p`.`PNome`) > 0))
+[2026-04-01 15:11:32 INF] Executed DbCommand (1ms) [Parameters=[@patientIds1='?' (DbType = Int32), @patientIds2='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `a`.`EventID` AS `EventId`, `a0`.`Account` AS `PatientId`, `a`.`StartDate`, `a`.`StartTime`, `a`.`EndDate`, `a`.`EndTime`, `a`.`Subject`, `a`.`Status`, `a`.`EventTypeName`, `a`.`Notes`
+FROM `apevents` AS `a`
+INNER JOIN `apdetail` AS `a0` ON `a`.`EventID` = `a0`.`EventID`
+WHERE `a0`.`Account` IS NOT NULL AND `a0`.`Account` IN (@patientIds1, @patientIds2)
+ORDER BY `a`.`StartDate` DESC, `a`.`StartTime` DESC
+[2026-04-01 15:11:32 INF] Executed DbCommand (1ms) [Parameters=[@patientIds1='?' (DbType = Int32), @patientIds2='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `p`.`Pac`, `p`.`GroupNumber`, `p`.`InsCardID` AS `InsCardId`, `p`.`RelationIns`, `p`.`EmployerName`, `e`.`ENome` AS `InsuranceName`, `e`.`EAbrevia` AS `InsuranceAbbrev`
+FROM `pacins` AS `p`
+LEFT JOIN `entidades` AS `e` ON `p`.`InsuranceID` = `e`.`ECod`
+WHERE `p`.`Pac` IS NOT NULL AND `p`.`Pac` IN (@patientIds1, @patientIds2)
+[2026-04-01 15:11:32 INF] Found 2 patient(s)
+[2026-04-01 15:11:32 INF] Patient #1284: SEYEDAMIRH HESAMIAN | DOB: 1993-03-25 | Status: Active
+[2026-04-01 15:11:32 INF]   Phone — Home: 4147362240  Mobile: null  Work: null
+[2026-04-01 15:11:32 INF]   Address: 4105 N ARDMORE AVE # 6, MILWAUKEE, WI 53211-
+[2026-04-01 15:11:32 INF]   Insurance: none on file
+[2026-04-01 15:11:32 INF]   Appointments (9):
+[2026-04-01 15:11:32 INF]     [2026-02-02 14:00 → 2026-02-02 15:00] SEYEDAMIRH HESAMIAN | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]       Notes: Hygiene Adult 
+[2026-04-01 15:11:32 INF]     [2025-07-08 14:00 → 2025-07-08 15:00] SEYEDAMIRH HESAMIAN | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]       Notes: Hygiene Adult 
+[2026-04-01 15:11:32 INF]     [2025-02-11 14:00 → 2025-02-11 15:00] SEYEDAMIRH HESAMIAN | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]     [2025-02-04 12:00 → 2025-02-04 13:00] SEYEDAMIRH HESAMIAN | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]     [2024-07-31 12:00 → 2024-07-31 13:00] SEYEDAMIRH HESAMIAN | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]     [2024-07-23 14:00 → 2024-07-23 15:00] SEYEDAMIRH HESAMIAN | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]     [2024-06-24 13:30 → 2024-06-24 14:20] SEYEDAMIRH HESAMIAN | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]     [2023-09-27 16:20 → 2023-09-27 16:30] SEYEDAMIRH HESAMIAN | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]     [2023-07-25 16:00 → 2023-07-25 16:30] SEYEDAMIRH HESAMIAN | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]       Notes: Filling 
+[2026-04-01 15:11:32 INF] Patient #6103: Seyed Aref Hesamian | DOB: 1952-02-01 | Status: Active
+[2026-04-01 15:11:32 INF]   Phone — Home:   Mobile: 4147362240  Work: null
+[2026-04-01 15:11:32 INF]   Address: 4944 N Santa Monica Blvd , Whitefish Bay , WI 53217-    
+[2026-04-01 15:11:32 INF]   Insurance: none on file
+[2026-04-01 15:11:32 INF]   Appointments (6):
+[2026-04-01 15:11:32 INF]     [2025-08-20 14:00 → 2025-08-20 15:00] Seyed Aref Hesamian | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]     [2025-08-13 14:00 → 2025-08-13 15:00] Seyed Aref Hesamian | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]     [2025-08-06 14:00 → 2025-08-06 15:00] Seyed Aref Hesamian | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]     [2025-07-28 15:00 → 2025-07-28 16:00] Seyed Aref Hesamian | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]     [2025-07-24 15:00 → 2025-07-24 16:00] Seyed Aref Hesamian | Status:  | Type: Appt
+[2026-04-01 15:11:32 INF]     [2025-07-09 13:00 → 2025-07-09 14:00] Seyed Aref Hesamian | Status:  | Type: Appt
