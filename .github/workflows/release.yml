@@ -10,8 +10,31 @@ env:
   VERSION_PREFIX: '1.0'
 
 jobs:
-  release:
-    name: Build & Release (${{ matrix.rid }})
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.ver.outputs.VERSION }}
+    steps:
+      - name: Extract version
+        id: ver
+        shell: bash
+        run: echo "VERSION=${{ env.VERSION_PREFIX }}.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          gh release create v${{ steps.ver.outputs.VERSION }}
+          --repo ${{ github.repository }}
+          --title "XLDent v${{ steps.ver.outputs.VERSION }}"
+          --draft=false
+
+  build:
+    name: Build & Upload (${{ matrix.rid }})
+    needs: create-release
     strategy:
       fail-fast: false
       matrix:
@@ -46,11 +69,6 @@ jobs:
         shell: bash
         run: echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
-      - name: Extract version
-        id: ver
-        shell: bash
-        run: echo "VERSION=${{ env.VERSION_PREFIX }}.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
-
       - name: Restore
         run: dotnet restore
 
@@ -68,7 +86,7 @@ jobs:
         run: >
           vpk pack
           --packId      XLDent
-          --packVersion ${{ steps.ver.outputs.VERSION }}
+          --packVersion ${{ needs.create-release.outputs.version }}
           --packDir     publish/${{ matrix.rid }}
           --mainExe     ${{ matrix.mainExe }}
           --outputDir   releases/${{ matrix.rid }}
@@ -79,8 +97,7 @@ jobs:
           vpk upload github
           --repoUrl     https://github.com/${{ github.repository }}
           --token       ${{ secrets.GITHUB_TOKEN }}
-          --tag         v${{ steps.ver.outputs.VERSION }}
-          --releaseName "XLDent v${{ steps.ver.outputs.VERSION }}"
-          --publish
+          --tag         v${{ needs.create-release.outputs.version }}
+          --releaseName "XLDent v${{ needs.create-release.outputs.version }}"
           --outputDir   releases/${{ matrix.rid }}
 
