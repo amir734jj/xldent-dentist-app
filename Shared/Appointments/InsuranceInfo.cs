@@ -1,4 +1,4 @@
-namespace XLDENTProxy.ViewModels;
+namespace Shared.Appointments;
 
 /// <summary>Insurance plan associated with a patient.</summary>
 public sealed class InsuranceInfo

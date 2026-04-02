@@ -1,8 +1,12 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+
 namespace Shared.Messages.Enums;
 
-public static class AgentRequestType
+[JsonConverter(typeof(StringEnumConverter))]
+public enum AgentRequestType
 {
-    public const string GetHealth = "GetHealth";
-    public const string SearchAppointments = "SearchAppointments";
-    public const string CancelAppointment = "CancelAppointment";
+    GetHealth,
+    SearchAppointments,
+    CancelAppointment,
 }

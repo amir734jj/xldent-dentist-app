@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Shared;
 using Velopack;
 using Velopack.Sources;
 
@@ -7,7 +8,6 @@ namespace Agent;
 
 public sealed class UpdateWorker(ILogger<UpdateWorker> logger) : BackgroundService
 {
-    private const string GitHubRepoUrl = "https://github.com/amir734jj/xldent-dentist-app";
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(1);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -23,7 +23,7 @@ public sealed class UpdateWorker(ILogger<UpdateWorker> logger) : BackgroundServi
     {
         try
         {
-            var mgr = new UpdateManager(new GithubSource(GitHubRepoUrl, null, false));
+            var mgr = new UpdateManager(new GithubSource(AppConstants.GitHubRepoUrl, null, false));
             var newVersion = await mgr.CheckForUpdatesAsync();
             if (newVersion is null)
             {

@@ -1,6 +1,6 @@
 using XLDENTProxy.Interfaces;
-using XLDENTProxy.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using Shared.Appointments;
 
 namespace XLDENTProxy.Queries;
 
@@ -57,7 +57,6 @@ public sealed class PatientAppointmentService(DrDataContext context) : IPatientA
         var patients = await query
             .Select(patient => new
             {
-
                 patient.Pmecano,
                 patient.Pfirst,
                 patient.Plast,

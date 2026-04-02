@@ -1,4 +1,4 @@
-namespace XLDENTProxy.ViewModels;
+namespace Shared.Appointments;
 
 public static class AppointmentCategory
 {

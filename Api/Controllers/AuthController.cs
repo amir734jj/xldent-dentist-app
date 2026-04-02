@@ -1,7 +1,8 @@
-using Api.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using Shared;
 using Shared.Contracts;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -12,14 +13,45 @@ namespace Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public sealed class AuthController(UserManager<User> users, IConfiguration config) : ControllerBase
+public sealed class AuthController(
+    UserManager<User> users,
+    RoleManager<Role> roles,
+    IConfiguration config) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest req)
     {
-        var user = new User { UserName = req.Email, Email = req.Email };
+        if (req.Password != req.PasswordConfirm)
+        {
+            return BadRequest(new[] { new { code = "PasswordMismatch", description = "Passwords do not match." } });
+        }
+
+        foreach (var role in new[] { Roles.Admin, Roles.User })
+        {
+            if (!await roles.RoleExistsAsync(role))
+            {
+                await roles.CreateAsync(new Role { Name = role });
+            }
+        }
+
+        var isFirstUser = !users.Users.Any();
+        var assignedRole = isFirstUser ? Roles.Admin : Roles.User;
+
+        var user = new User
+        {
+            UserName = req.Email,
+            Email = req.Email,
+            IsActive = isFirstUser
+        };
+
         var result = await users.CreateAsync(user, req.Password);
-        return result.Succeeded ? Ok() : BadRequest(result.Errors);
+        if (!result.Succeeded)
+        {
+            return BadRequest(result.Errors);
+        }
+
+        await users.AddToRoleAsync(user, assignedRole);
+        return Ok(new RegisterResponse(isFirstUser));
     }
 
     [HttpPost("login")]
@@ -31,10 +63,25 @@ public sealed class AuthController(UserManager<User> users, IConfiguration confi
             return Unauthorized();
         }
 
-        return Ok(new { token = BuildToken(user) });
+        if (!user.IsActive)
+        {
+            return StatusCode(403, new { message = "Account is pending activation by an administrator." });
+        }
+
+        var userRoles = await users.GetRolesAsync(user);
+        var role = userRoles.FirstOrDefault() ?? Roles.User;
+        return Ok(new LoginResponse(BuildToken(user, role), role));
     }
 
-    private string BuildToken(User user)
+    [HttpGet("me")]
+    [Authorize]
+    public IActionResult Me()
+    {
+        var email = User.FindFirstValue(JwtRegisteredClaimNames.Email);
+        return Ok(new MeResponse(email!));
+    }
+
+    private string BuildToken(User user, string role)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
         var token = new JwtSecurityToken(
@@ -43,7 +90,8 @@ public sealed class AuthController(UserManager<User> users, IConfiguration confi
             claims:
             [
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email!)
+                new Claim(JwtRegisteredClaimNames.Email, user.Email!),
+                new Claim("role", role)
             ],
             expires: DateTime.UtcNow.AddDays(7),
             signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
@@ -51,3 +99,4 @@ public sealed class AuthController(UserManager<User> users, IConfiguration confi
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
+

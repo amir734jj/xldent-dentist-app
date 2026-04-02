@@ -1,4 +1,6 @@
 @page "/"
+@using System.Net
+@using System.Text.RegularExpressions
 @using Shared.Messages.Requests
 @inject ApiService Api
 @inject AuthService Auth
@@ -12,28 +14,26 @@
 }
 else
 {
-    <div class="d-flex align-items-center mb-4">
-        <h4 class="mb-0">XLDent Agent Dashboard</h4>
-        <div class="ms-auto d-flex gap-2">
-            <HxButton Text="Refresh" Color="ThemeColor.Secondary" Size="ButtonSize.Small" OnClick="Refresh" />
-            <HxButton Text="Logout" Color="ThemeColor.Danger" Size="ButtonSize.Small" OnClick="Logout" />
-        </div>
-    </div>
+    <h4 class="mb-4">Agent Dashboard</h4>
+
+    @if (_loadError is not null)
+    {
+        <HxAlert Color="ThemeColor.Danger" CssClass="mb-4">@_loadError</HxAlert>
+    }
 
     <HxCard CssClass="mb-4">
         <HeaderTemplate><strong>Agent API Keys</strong></HeaderTemplate>
         <BodyTemplate>
             @if (_keys.Count == 0)
             {
-                <p class="text-muted small">No keys provisioned yet.</p>
+                <p class="text-muted small mb-3">No keys provisioned yet.</p>
             }
             else
             {
-                <table class="table table-sm table-bordered mb-0">
-                    <thead>
+                <table class="table table-sm table-hover mb-3">
+                    <thead class="table-light">
                         <tr>
                             <th>Agent ID</th>
-                            <th>Clinic</th>
                             <th>API Key</th>
                             <th>Created</th>
                             <th></th>
@@ -43,11 +43,10 @@ else
                         @foreach (var k in _keys)
                         {
                             <tr>
-                                <td>@k.AgentId</td>
-                                <td>@k.ClinicName</td>
-                                <td><code>@k.ApiKey</code></td>
-                                <td>@k.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
-                                <td>
+                                <td class="fw-semibold">@k.AgentId</td>
+                                <td><code class="user-select-all">@k.ApiKey</code></td>
+                                <td class="text-muted small">@k.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                                <td class="text-end">
                                     <HxButton Text="Delete" Color="ThemeColor.Danger"
                                               Size="ButtonSize.Small"
                                               OnClick="@(() => DeleteKey(k.AgentId))" />
@@ -58,18 +57,13 @@ else
                 </table>
             }
 
-            <hr />
-            <h6 class="mb-3">Create New Key</h6>
-            <div class="row g-2 align-items-end">
-                <div class="col-auto">
-                    <HxInputText Label="Agent ID" @bind-Value="_newAgentId" Placeholder="clinic-1" />
-                </div>
-                <div class="col-auto">
-                    <HxInputText Label="Clinic Name" @bind-Value="_newClinicName" Placeholder="Main Street Dental" />
-                </div>
-                <div class="col-auto align-self-end" style="padding-bottom: 1rem;">
-                    <HxButton Text="Generate Key" Color="ThemeColor.Primary"
-                              Size="ButtonSize.Small" OnClick="CreateKey" />
+            <h6 class="mb-2">Provision New Agent</h6>
+            <p class="text-muted small mb-2">Agent ID must start with a letter or digit. Letters, digits, and hyphens only — no spaces.</p>
+            <div style="max-width: 500px;">
+                <label class="form-label">Agent ID</label>
+                <div class="input-group">
+                    <InputText @bind-Value="_newAgentId" class="form-control" placeholder="my-clinic" />
+                    <HxButton Text="Generate Key" Color="ThemeColor.Primary" OnClick="CreateKey" />
                 </div>
             </div>
             @if (_keyError is not null)
@@ -81,7 +75,7 @@ else
 
     @if (_agents.Count == 0)
     {
-        <p class="text-muted">No agents connected.</p>
+        <div class="text-muted fst-italic">No agents connected.</div>
     }
 
     @foreach (var agent in _agents)
@@ -89,37 +83,41 @@ else
         <HxCard CssClass="mb-4">
             <HeaderTemplate><strong>Agent: @agent</strong></HeaderTemplate>
             <BodyTemplate>
-                <h6>Search Appointments</h6>
+                <h6 class="mb-2">Search Appointments</h6>
                 <div class="row g-2 mb-2">
-                    <div class="col-md-3">
+                    <div class="col-sm-6 col-md-3">
                         <HxInputText Label="Name" @bind-Value="_search[agent].Name" Placeholder="Smith" />
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-sm-6 col-md-3">
                         <HxInputText Label="Phone" @bind-Value="_search[agent].Phone" Placeholder="4141234567" />
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-sm-6 col-md-3">
                         <HxInputText Label="Email" @bind-Value="_search[agent].Email" Placeholder="patient@example.com" />
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-sm-6 col-md-3">
                         <HxInputText Label="Event ID" @bind-Value="_search[agent].EventId" Placeholder="UUID" />
                     </div>
                 </div>
-                <div class="mb-3">
+                <div class="mb-4">
                     <HxButton Text="Search" Color="ThemeColor.Primary"
                               Size="ButtonSize.Small" OnClick="@(() => RunSearch(agent))" />
                 </div>
 
-                <h6>Cancel Appointment</h6>
-                <HxInputText Label="" @bind-Value="_eventId[agent]"
-                             Placeholder="Appointment event UUID" CssClass="mb-2" />
-                <div class="mb-3">
-                    <HxButton Text="Cancel Appointment" Color="ThemeColor.Danger"
-                              Size="ButtonSize.Small" OnClick="@(() => RunCancel(agent))" />
+                <h6 class="mb-2">Cancel Appointment</h6>
+                <div class="d-flex gap-2 align-items-end" style="max-width: 420px;">
+                    <div class="flex-grow-1">
+                        <HxInputText Label="Event ID" @bind-Value="_eventId[agent]"
+                                     Placeholder="Appointment event UUID" />
+                    </div>
+                    <div class="mb-1">
+                        <HxButton Text="Cancel" Color="ThemeColor.Danger"
+                                  Size="ButtonSize.Small" OnClick="@(() => RunCancel(agent))" />
+                    </div>
                 </div>
 
                 @if (_results.TryGetValue(agent, out var result))
                 {
-                    <pre class="p-2 bg-light border rounded small" style="white-space: pre-wrap">@result</pre>
+                    <pre class="mt-3 p-3 bg-light border rounded small" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto">@result</pre>
                 }
             </BodyTemplate>
         </HxCard>
@@ -129,13 +127,16 @@ else
 @code {
     List<string>      _agents  = [];
     List<AgentKeyDto> _keys    = [];
-    Dictionary<string, SearchAppointmentsRequest> _search  = new();
-    Dictionary<string, string>                    _eventId = new();
-    Dictionary<string, string>                    _results = new();
+    readonly Dictionary<string, SearchAppointmentsRequest> _search  = new();
+    readonly Dictionary<string, string>                    _eventId = new();
+    readonly Dictionary<string, string>                    _results = new();
 
-    string _newAgentId    = string.Empty;
-    string _newClinicName = string.Empty;
-    string? _keyError;
+    string   _newAgentId = string.Empty;
+    string?  _keyError;
+    string?  _loadError;
+
+    private static readonly Regex AgentIdRegex =
+        new("^[a-zA-Z0-9][a-zA-Z0-9-]*$", RegexOptions.Compiled);
 
     protected override async Task OnInitializedAsync()
     {
@@ -145,32 +146,50 @@ else
 
     async Task Refresh()
     {
-        _agents = await Api.GetAgentsAsync();
-        _keys   = await Api.GetAgentKeysAsync();
-        foreach (var a in _agents)
+        _loadError = null;
+        try
         {
-            _search.TryAdd(a, new SearchAppointmentsRequest());
-            _eventId.TryAdd(a, "");
+            _agents = await Api.GetAgentsAsync();
+            _keys   = await Api.GetAgentKeysAsync();
+            foreach (var a in _agents)
+            {
+                _search.TryAdd(a, new SearchAppointmentsRequest());
+                _eventId.TryAdd(a, "");
+            }
+        }
+        catch (HttpRequestException)
+        {
+            _loadError = "Cannot reach the API server. Make sure the API is running.";
         }
     }
 
     async Task CreateKey()
     {
         _keyError = null;
-        if (string.IsNullOrWhiteSpace(_newAgentId) || string.IsNullOrWhiteSpace(_newClinicName))
+        var id = _newAgentId.Trim();
+        if (string.IsNullOrWhiteSpace(id))
         {
-            _keyError = "Agent ID and Clinic Name are required.";
+            _keyError = "Agent ID is required.";
+            return;
+        }
+        if (!AgentIdRegex.IsMatch(id))
+        {
+            _keyError = "Agent ID must start with a letter or digit and may only contain letters, digits, and hyphens.";
             return;
         }
         try
         {
-            var created = await Api.CreateAgentKeyAsync(_newAgentId.Trim(), _newClinicName.Trim());
+            var created = await Api.CreateAgentKeyAsync(id);
             _keys.Add(created);
-            _newAgentId = _newClinicName = string.Empty;
+            _newAgentId = string.Empty;
         }
-        catch (Refit.ApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+        catch (Refit.ApiException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
         {
-            _keyError = $"Agent ID '{_newAgentId}' already exists.";
+            _keyError = $"Agent ID '{id}' already exists.";
+        }
+        catch (Refit.ApiException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
+        {
+            _keyError = await ex.GetContentAsAsync<string>() ?? "Invalid Agent ID.";
         }
     }
 
@@ -192,11 +211,5 @@ else
         _results[agent] = "Cancelling...";
         StateHasChanged();
         _results[agent] = await Api.CancelAppointmentAsync(agent, _eventId[agent]) ?? "(no response)";
-    }
-
-    void Logout()
-    {
-        Auth.ClearToken();
-        Nav.NavigateTo("/login");
     }
 }

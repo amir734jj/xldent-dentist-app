@@ -10,6 +10,7 @@
         <BodyTemplate>
             <HxInputText Label="Email" @bind-Value="_email" InputType="InputType.Email" />
             <HxInputText Label="Password" @bind-Value="_password" InputType="InputType.Password" />
+            <HxInputText Label="Confirm Password" @bind-Value="_confirm" InputType="InputType.Password" />
 
             @if (_error is not null)
             {
@@ -18,31 +19,53 @@
 
             @if (_success)
             {
-                <HxAlert Color="ThemeColor.Success" CssClass="mt-2">
-                    Registered successfully. <a href="/login">Sign in</a>
-                </HxAlert>
+                @if (_isActive)
+                {
+                    <HxAlert Color="ThemeColor.Success" CssClass="mt-2">
+                        Account created. <a href="/login">Sign in</a>
+                    </HxAlert>
+                }
+                else
+                {
+                    <HxAlert Color="ThemeColor.Info" CssClass="mt-2">
+                        Account created. An administrator must activate your account before you can sign in.
+                    </HxAlert>
+                }
             }
 
             <div class="mt-3">
-                <HxButton Text="Register" Color="ThemeColor.Primary" OnClick="Submit" Enabled="@(!_busy)" />
+                <HxButton Text="Register" Color="ThemeColor.Primary" OnClick="Submit" Enabled="@(!_busy || _success)" />
             </div>
         </BodyTemplate>
     </HxCard>
 </div>
 
 @code {
-    string _email = "", _password = "";
+    string _email = "", _password = "", _confirm = "";
     string? _error;
-    bool _busy, _success;
+    bool _busy, _success, _isActive;
 
     async Task Submit()
     {
-        _busy = true; _error = null;
+        _error = null;
+        if (_password != _confirm)
+        {
+            _error = "Passwords do not match.";
+            return;
+        }
+        _busy = true;
         try
         {
-            _success = await Api.RegisterAsync(_email, _password);
-            if (!_success)
-                _error = "Registration failed. Password must be at least 8 characters.";
+            var (success, isActive, error) = await Api.RegisterAsync(_email, _password, _confirm);
+            if (success)
+            {
+                _success = true;
+                _isActive = isActive;
+            }
+            else
+            {
+                _error = error;
+            }
         }
         finally { _busy = false; }
     }

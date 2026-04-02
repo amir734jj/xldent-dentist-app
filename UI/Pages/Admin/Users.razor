@@ -1,0 +1,123 @@
+@page "/admin/users"
+@inject ApiService Api
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<PageTitle>User Management – XLDent</PageTitle>
+
+@if (!Auth.IsAuthenticated || !Auth.IsAdmin)
+{
+    <p>Redirecting...</p>
+}
+else
+{
+    <div class="d-flex align-items-center mb-4">
+        <h4 class="mb-0">User Management</h4>
+        <div class="ms-auto">
+            <HxButton Text="Refresh" Color="ThemeColor.Secondary" Size="ButtonSize.Small" OnClick="Load" />
+        </div>
+    </div>
+
+    @if (_error is not null)
+    {
+        <HxAlert Color="ThemeColor.Danger">@_error</HxAlert>
+    }
+
+    @if (_users.Count == 0 && !_loading)
+    {
+        <p class="text-muted">No users found.</p>
+    }
+    else
+    {
+        <HxCard>
+            <BodyTemplate>
+                <table class="table table-sm table-bordered mb-0">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var u in _users)
+                        {
+                            <tr>
+                                <td>@u.Email</td>
+                                <td>@string.Join(", ", u.Roles)</td>
+                                <td>
+                                    @if (u.IsActive)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (u.IsActive)
+                                    {
+                                        <HxButton Text="Deactivate" Color="ThemeColor.Warning"
+                                                  Size="ButtonSize.Small"
+                                                  OnClick="@(() => Toggle(u, false))" />
+                                    }
+                                    else
+                                    {
+                                        <HxButton Text="Activate" Color="ThemeColor.Success"
+                                                  Size="ButtonSize.Small"
+                                                  OnClick="@(() => Toggle(u, true))" />
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </BodyTemplate>
+        </HxCard>
+    }
+}
+
+@code {
+    List<UserDto> _users = [];
+    string? _error;
+    bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated || !Auth.IsAdmin)
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+        await Load();
+    }
+
+    async Task Load()
+    {
+        _loading = true; _error = null;
+        try { _users = await Api.GetUsersAsync(); }
+        catch (Refit.ApiException ex) { _error = $"Failed to load users. API error {(int)ex.StatusCode}: {ex.ReasonPhrase}"; }
+        catch (Exception ex) { _error = $"Failed to load users: {ex.Message}"; }
+        finally { _loading = false; }
+    }
+
+    async Task Toggle(UserDto user, bool activate)
+    {
+        try
+        {
+            if (activate)
+            {
+                await Api.ActivateUserAsync(user.Id);
+            }
+            else
+            {
+                await Api.DeactivateUserAsync(user.Id);
+            }
+
+            await Load();
+        }
+        catch { _error = "Failed to update user."; }
+    }
+}

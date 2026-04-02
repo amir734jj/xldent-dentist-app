@@ -1,4 +1,4 @@
-namespace XLDENTProxy.ViewModels;
+namespace Shared.Appointments;
 
 /// <summary>Combined patient details, appointments, and insurance.</summary>
 public sealed class PatientAppointmentResult

@@ -1,9 +1,13 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+
 namespace Shared.Messages.Enums;
 
-public static class AgentResponseType
+[JsonConverter(typeof(StringEnumConverter))]
+public enum AgentResponseType
 {
-    public const string Health = "Health";
-    public const string Appointments = "Appointments";
-    public const string Success = "Success";
-    public const string Error = "Error";
+    Health,
+    Appointments,
+    Success,
+    Error,
 }

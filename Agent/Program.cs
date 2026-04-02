@@ -12,11 +12,6 @@ using XLDENTProxy;
 
 VelopackApp.Build().Run();
 
-var isService = WindowsServiceHelpers.IsWindowsService() || SystemdHelpers.IsSystemdService();
-
-if (args.Contains("--install-service"))   { ServiceInstaller.Install();   return; }
-if (args.Contains("--uninstall-service")) { ServiceInstaller.Uninstall(); return; }
-
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
@@ -25,6 +20,11 @@ Log.Logger = new LoggerConfiguration()
         rollingInterval: RollingInterval.Day,
         outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
     .CreateLogger();
+
+var isService = WindowsServiceHelpers.IsWindowsService() || SystemdHelpers.IsSystemdService();
+
+if (args.Contains("--install-service"))   { ServiceInstaller.Install();   return; }
+if (args.Contains("--uninstall-service")) { ServiceInstaller.Uninstall(); return; }
 
 if (!isService)
 {

@@ -1,5 +1,4 @@
-using XLDENTProxy.Queries;
-using XLDENTProxy.ViewModels;
+using Shared.Appointments;
 
 namespace XLDENTProxy.Interfaces;
 

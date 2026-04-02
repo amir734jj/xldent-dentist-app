@@ -1,20 +1,20 @@
 using System.Data.Common;
-using LiteDB;
+using SQLite;
 
 namespace Agent.Connection;
 
 public sealed class ConnectionProfile
 {
-    [BsonId]
+    [PrimaryKey, AutoIncrement]
     public int Id { get; set; }
 
-    public required string Server   { get; set; }
-    public required int    Port     { get; set; }
-    public required string Database { get; set; }
-    public required string Username { get; set; }
-    public required string Password { get; set; }
+    public string Server   { get; set; } = string.Empty;
+    public int    Port     { get; set; }
+    public string Database { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
 
-    public DateTimeOffset LastUsed { get; set; }
+    public DateTime LastUsed { get; set; }
 
     public string ToConnectionString()
     {

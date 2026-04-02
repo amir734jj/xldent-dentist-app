@@ -1,8 +1,12 @@
+using System.Security.Claims;
+using Api.Data.Entities;
 using Api.Hubs;
 using Api.Services;
+using EfCoreRepository.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Shared;
 using Shared.Contracts;
 using Shared.Messages.Interfaces;
 using Shared.Messages.Requests;
@@ -13,17 +17,47 @@ namespace Api.Controllers;
 [ApiController]
 [Route("api/agents")]
 [Authorize]
-public sealed class AgentsController(AgentRegistry registry, IHubContext<AgentHub> hub) : ControllerBase
+public sealed class AgentsController(AgentRegistry registry, IHubContext<AgentHub> hub, IEfRepository repository) : ControllerBase
 {
-    [HttpGet]
-    public IActionResult List()
+    private IBasicCrud<AgentApiKey> AgentApiKeysDal => repository.For<AgentApiKey>();
+
+    private Guid CurrentUserId =>
+        Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub")
+            ?? throw new InvalidOperationException("User ID claim missing."));
+
+    private bool IsAdmin => User.IsInRole(Roles.Admin);
+
+    private async Task<bool> UserOwnsAgent(string agentId)
     {
-        return Ok(registry.ConnectedAgents());
+        var userId = CurrentUserId;
+        return await AgentApiKeysDal.Any([k => k.AgentId == agentId && k.UserId == userId]);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> List()
+    {
+        if (IsAdmin)
+        {
+            return Ok(registry.ConnectedAgents());
+        }
+
+        var userId = CurrentUserId;
+        var ownedIds = (await AgentApiKeysDal.GetAll(
+            filterExprs: [k => k.UserId == userId],
+            project: k => k.AgentId)).ToHashSet();
+
+        return Ok(registry.ConnectedAgents().Where(id => ownedIds.Contains(id)).ToList());
     }
 
     [HttpGet("{agentId}/health")]
     public async Task<IActionResult> Health(string agentId, CancellationToken ct)
     {
+        if (!IsAdmin && !await UserOwnsAgent(agentId))
+        {
+            return Forbid();
+        }
+
         var cid = registry.GetConnectionId(agentId);
         if (cid is null)
         {
@@ -54,6 +88,11 @@ public sealed class AgentsController(AgentRegistry registry, IHubContext<AgentHu
     [HttpPost("{agentId}/search")]
     public async Task<IActionResult> Search(string agentId, [FromBody] SearchAppointmentsRequest req, CancellationToken ct)
     {
+        if (!IsAdmin && !await UserOwnsAgent(agentId))
+        {
+            return Forbid();
+        }
+
         var cid = registry.GetConnectionId(agentId);
         if (cid is null)
         {
@@ -68,7 +107,7 @@ public sealed class AgentsController(AgentRegistry registry, IHubContext<AgentHu
                 .InvokeAsync<IAgentResponse>("Proxy", req, timeout.Token);
             return response switch
             {
-                AppointmentsResponse r => Content(r.Data, "application/json"),
+                AppointmentsResponse r => Ok(r.Data),
                 AgentErrorResponse e   => StatusCode(502, e.Message),
                 _                      => StatusCode(502, "Unexpected response from agent.")
             };
@@ -85,6 +124,11 @@ public sealed class AgentsController(AgentRegistry registry, IHubContext<AgentHu
         [FromBody] Shared.Contracts.CancelAppointmentRequest req,
         CancellationToken ct)
     {
+        if (!IsAdmin && !await UserOwnsAgent(agentId))
+        {
+            return Forbid();
+        }
+
         var cid = registry.GetConnectionId(agentId);
         if (cid is null)
         {

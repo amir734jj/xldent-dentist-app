@@ -1,24 +1,28 @@
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">XLDent</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
+@inject AuthService Auth
+@inject NavigationManager Nav
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                Dashboard
-            </NavLink>
-        </div>
-    </nav>
-</div>
+<HxNavbar CssClass="bg-dark mb-3" ColorMode="ColorMode.Dark" Expand="NavbarExpand.MediumUp">
+    <HxNavbarBrand Href="/">XLDent</HxNavbarBrand>
+    <HxNavbarToggler CollapseTarget="#mainNav" />
+    <HxNavbarCollapse Id="mainNav">
+        <HxNav CssClass="me-auto mb-2 mb-md-0">
+            <HxNavLink Href="" Match="NavLinkMatch.All">Dashboard</HxNavLink>
+            @if (Auth.IsAdmin)
+            {
+                <HxNavLink Href="admin/users">User Management</HxNavLink>
+            }
+        </HxNav>
+        @if (Auth.IsAuthenticated)
+        {
+            <HxButton Text="Logout" Color="ThemeColor.Danger" Size="ButtonSize.Small" OnClick="Logout" />
+        }
+    </HxNavbarCollapse>
+</HxNavbar>
 
 @code {
-    private bool collapseNavMenu = true;
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+    async Task Logout()
+    {
+        await Auth.ClearTokenAsync();
+        Nav.NavigateTo("/login");
+    }
 }

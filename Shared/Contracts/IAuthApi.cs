@@ -8,5 +8,9 @@ public interface IAuthApi
     Task<LoginResponse> LoginAsync([Body] LoginRequest request);
 
     [Post("/api/auth/register")]
-    Task RegisterAsync([Body] RegisterRequest request);
+    Task<RegisterResponse> RegisterAsync([Body] RegisterRequest request);
+
+    [Get("/api/auth/me")]
+    [Headers("Authorization: Bearer")]
+    Task<MeResponse> MeAsync();
 }

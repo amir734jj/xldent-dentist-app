@@ -1,3 +1,4 @@
+using Shared;
 using Serilog;
 using Spectre.Console;
 using Velopack;
@@ -7,18 +8,17 @@ namespace Service.Connection;
 
 public static class UpdateService
 {
-    private const string GitHubRepoUrl = "https://github.com/amir734jj/xldent-dentist-app";
 
     public static async Task CheckAndApplyUpdatesAsync()
     {
-        if (string.IsNullOrWhiteSpace(GitHubRepoUrl))
+        if (string.IsNullOrWhiteSpace(AppConstants.GitHubRepoUrl))
         {
             return;
         }
 
         try
         {
-            var mgr        = new UpdateManager(new GithubSource(GitHubRepoUrl, null, false));
+            var mgr        = new UpdateManager(new GithubSource(AppConstants.GitHubRepoUrl, null, false));
             var newVersion = await mgr.CheckForUpdatesAsync();
 
             if (newVersion is null)

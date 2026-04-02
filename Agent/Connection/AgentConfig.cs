@@ -1,13 +1,13 @@
-using LiteDB;
+using SQLite;
 
 namespace Agent.Connection;
 
 public sealed class AgentConfig
 {
-    [BsonId]
+    [PrimaryKey]
     public int Id { get; set; }
 
-    public required string HubUrl  { get; set; }
-    public required string AgentId { get; set; }
-    public required string ApiKey  { get; set; }
+    public string HubUrl  { get; set; } = string.Empty;
+    public string AgentId { get; set; } = string.Empty;
+    public string ApiKey  { get; set; } = string.Empty;
 }

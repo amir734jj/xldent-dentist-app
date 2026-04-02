@@ -3,4 +3,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Api.Data.Entities;
 
-public sealed class User : IdentityUser<Guid>, IEntity;
+public sealed class User : IdentityUser<Guid>, IEntity
+{
+    public bool IsActive { get; set; }
+}

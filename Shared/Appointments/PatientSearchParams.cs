@@ -1,4 +1,4 @@
-namespace XLDENTProxy.Queries;
+namespace Shared.Appointments;
 
 /// <summary>
 /// Search criteria for looking up a patient.
@@ -6,26 +6,26 @@ namespace XLDENTProxy.Queries;
 /// Phone is matched against home, mobile and work numbers.
 /// Name is matched against first name, last name, and full-name fields.
 /// </summary>
-public sealed class PatientSearchParams
+public class PatientSearchParams
 {
     /// <summary>Partial or full phone number (matched against home, mobile and work).</summary>
-    public string? Phone { get; init; }
+    public string? Phone { get; set; }
 
     /// <summary>Partial or full e-mail address.</summary>
-    public string? Email { get; init; }
+    public string? Email { get; set; }
 
     /// <summary>Partial or full name (first, last, or combined).</summary>
-    public string? Name { get; init; }
+    public string? Name { get; set; }
 
     /// <summary>Partial or full street address.</summary>
-    public string? Address { get; init; }
+    public string? Address { get; set; }
 
     /// <summary>Exact appointment event UUID. When provided, results are limited to the patient owning this appointment.</summary>
-    public string? EventId { get; init; }
+    public string? EventId { get; set; }
 
     /// <summary>Inclusive start of the appointment date range filter (matches <c>apevents.StartDate</c>).</summary>
-    public DateOnly? DateFrom { get; init; }
+    public DateOnly? DateFrom { get; set; }
 
     /// <summary>Inclusive end of the appointment date range filter (matches <c>apevents.StartDate</c>).</summary>
-    public DateOnly? DateTo { get; init; }
+    public DateOnly? DateTo { get; set; }
 }

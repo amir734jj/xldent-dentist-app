@@ -6,5 +6,5 @@ namespace Shared.Messages.Responses;
 public sealed class SuccessResponse : IAgentResponse
 {
     public string Value { get; set; } = string.Empty;
-    public string ResponseType => AgentResponseType.Success;
+    public AgentResponseType ResponseType => AgentResponseType.Success;
 }

@@ -34,10 +34,11 @@
         _busy = true; _error = null;
         try
         {
-            if (await Api.LoginAsync(_email, _password))
+            _error = await Api.LoginAsync(_email, _password);
+            if (_error is null)
+            {
                 Nav.NavigateTo("/");
-            else
-                _error = "Invalid email or password.";
+            }
         }
         finally { _busy = false; }
     }

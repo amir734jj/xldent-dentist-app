@@ -6,5 +6,5 @@ namespace Shared.Messages.Responses;
 public sealed class AgentErrorResponse : IAgentResponse
 {
     public string Message { get; set; } = string.Empty;
-    public string ResponseType => AgentResponseType.Error;
+    public AgentResponseType ResponseType => AgentResponseType.Error;
 }

@@ -11,6 +11,5 @@ public sealed class AgentApiKey : IEntity
     public User? User { get; set; }
 
     public string AgentId    { get; set; } = string.Empty;
-    public string ClinicName { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

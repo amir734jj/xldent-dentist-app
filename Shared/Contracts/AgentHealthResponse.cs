@@ -2,6 +2,6 @@ namespace Shared.Contracts;
 
 public record AgentHealthResponse(
     string AgentId,
-    string Status,
+    AgentStatus Status,
     DateTimeOffset? LastSeen,
     bool DbConnected);

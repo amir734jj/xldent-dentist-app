@@ -1,14 +1,16 @@
-using System.Text.Json.Serialization;
+using JsonSubTypes;
+using Newtonsoft.Json;
+using Shared.Messages.Enums;
 using Shared.Messages.Responses;
 
 namespace Shared.Messages.Interfaces;
 
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
-[JsonDerivedType(typeof(HealthResponse), "Health")]
-[JsonDerivedType(typeof(AppointmentsResponse), "Appointments")]
-[JsonDerivedType(typeof(SuccessResponse), "Success")]
-[JsonDerivedType(typeof(AgentErrorResponse), "Error")]
+[JsonConverter(typeof(JsonSubtypes), nameof(ResponseType))]
+[JsonSubtypes.KnownSubType(typeof(HealthResponse), AgentResponseType.Health)]
+[JsonSubtypes.KnownSubType(typeof(AppointmentsResponse), AgentResponseType.Appointments)]
+[JsonSubtypes.KnownSubType(typeof(SuccessResponse), AgentResponseType.Success)]
+[JsonSubtypes.KnownSubType(typeof(AgentErrorResponse), AgentResponseType.Error)]
 public interface IAgentResponse
 {
-    string ResponseType { get; }
+    AgentResponseType ResponseType { get; }
 }

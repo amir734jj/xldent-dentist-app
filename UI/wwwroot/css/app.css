@@ -1,3 +1,10 @@
+/* Active navbar link — underline only, no box */
+.navbar .active-link {
+    color: #fff !important;
+    border-bottom: 2px solid #fff;
+    padding-bottom: 2px;
+}
+
 /* Blazor loading spinner */
 .loading-progress {
     position: absolute;

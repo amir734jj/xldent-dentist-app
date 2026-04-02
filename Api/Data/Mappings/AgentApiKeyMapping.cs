@@ -9,11 +9,10 @@ public sealed class AgentApiKeyMapping : IEntityTypeConfiguration<AgentApiKey>
     public void Configure(EntityTypeBuilder<AgentApiKey> builder)
     {
         builder.Property(k => k.AgentId).HasMaxLength(100);
-        builder.Property(k => k.ClinicName).HasMaxLength(200);
         builder.HasIndex(k => k.AgentId).IsUnique();
         builder.HasOne(k => k.User)
-               .WithOne()
-               .HasForeignKey<AgentApiKey>(k => k.UserId)
+               .WithMany()
+               .HasForeignKey(k => k.UserId)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }

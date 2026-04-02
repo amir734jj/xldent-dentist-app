@@ -1,13 +1,17 @@
-using LiteDB;
+using SQLite;
 
 namespace Agent.Connection;
 
 public sealed class ConnectionStore : IDisposable
 {
-    private readonly LiteDatabase _db = new(DbPath);
-    private ILiteCollection<ConnectionProfile> Profiles => _db.GetCollection<ConnectionProfile>("profiles");
+    private readonly SQLiteConnection _db;
 
-    private ILiteCollection<AgentConfig>       AgentConfigs => _db.GetCollection<AgentConfig>("agent_config");
+    public ConnectionStore()
+    {
+        _db = new SQLiteConnection(DbPath);
+        _db.CreateTable<ConnectionProfile>();
+        _db.CreateTable<AgentConfig>();
+    }
 
     public static string DbPath
     {
@@ -17,20 +21,20 @@ public sealed class ConnectionStore : IDisposable
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "xldent");
             Directory.CreateDirectory(dir);
-            return Path.Combine(dir, "xldent.litedb");
+            return Path.Combine(dir, "xldent.db");
         }
     }
 
     public ConnectionProfile? GetLastUsed()
     {
-        return Profiles.Query()
+        return _db.Table<ConnectionProfile>()
             .OrderByDescending(p => p.LastUsed)
             .FirstOrDefault();
     }
 
     public void SaveProfile(ConnectionProfile profile)
     {
-        var existing = Profiles.FindOne(p =>
+        var existing = _db.Table<ConnectionProfile>().FirstOrDefault(p =>
             p.Server   == profile.Server   &&
             p.Port     == profile.Port     &&
             p.Database == profile.Database &&
@@ -38,26 +42,26 @@ public sealed class ConnectionStore : IDisposable
 
         if (existing is null)
         {
-            profile.LastUsed = DateTimeOffset.UtcNow;
-            Profiles.Insert(profile);
+            profile.LastUsed = DateTime.UtcNow;
+            _db.Insert(profile);
         }
         else
         {
             existing.Password = profile.Password;
-            existing.LastUsed = DateTimeOffset.UtcNow;
-            Profiles.Update(existing);
+            existing.LastUsed = DateTime.UtcNow;
+            _db.Update(existing);
         }
     }
 
     public AgentConfig? GetAgentConfig()
     {
-        return AgentConfigs.FindById(1);
+        return _db.Table<AgentConfig>().FirstOrDefault();
     }
 
     public void SaveAgentConfig(AgentConfig config)
     {
         config.Id = 1;
-        AgentConfigs.Upsert(config);
+        _db.InsertOrReplace(config);
     }
 
     public void Dispose()
