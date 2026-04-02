@@ -1,7 +1,9 @@
 @page "/"
 @using System.Net
 @using System.Text.RegularExpressions
+@using Shared.Appointments
 @using Shared.Messages.Requests
+@using Shared.Contracts
 @inject ApiService Api
 @inject AuthService Auth
 @inject NavigationManager Nav
@@ -81,7 +83,28 @@ else
     @foreach (var agent in _agents)
     {
         <HxCard CssClass="mb-4">
-            <HeaderTemplate><strong>Agent: @agent</strong></HeaderTemplate>
+            <HeaderTemplate>
+                <div class="d-flex align-items-center gap-3">
+                    <strong>Agent: @agent</strong>
+                    @if (_health.TryGetValue(agent, out var h))
+                    {
+                        var (badgeColor, icon) = h.Status switch
+                        {
+                            AgentStatus.Online   => ("success", "✓"),
+                            AgentStatus.Degraded => ("warning", "⚠"),
+                            _                    => ("secondary", "✗")
+                        };
+                        <span class="badge bg-@badgeColor">@icon @h.Status</span>
+                        <span class="text-muted small">DB: @(h.DbConnected ? "Connected" : "Disconnected")</span>
+                        @if (h.LastSeen.HasValue)
+                        {
+                            <span class="text-muted small">Last seen: @h.LastSeen.Value.ToLocalTime().ToString("HH:mm:ss")</span>
+                        }
+                    }
+                    <HxButton Text="Check Health" Color="ThemeColor.Secondary"
+                              Size="ButtonSize.Small" OnClick="@(() => CheckHealth(agent))" />
+                </div>
+            </HeaderTemplate>
             <BodyTemplate>
                 <h6 class="mb-2">Search Appointments</h6>
                 <div class="row g-2 mb-2">
@@ -98,26 +121,97 @@ else
                         <HxInputText Label="Event ID" @bind-Value="_search[agent].EventId" Placeholder="UUID" />
                     </div>
                 </div>
-                <div class="mb-4">
+                <div class="mb-3">
                     <HxButton Text="Search" Color="ThemeColor.Primary"
                               Size="ButtonSize.Small" OnClick="@(() => RunSearch(agent))" />
                 </div>
 
-                <h6 class="mb-2">Cancel Appointment</h6>
-                <div class="d-flex gap-2 align-items-end" style="max-width: 420px;">
-                    <div class="flex-grow-1">
-                        <HxInputText Label="Event ID" @bind-Value="_eventId[agent]"
-                                     Placeholder="Appointment event UUID" />
-                    </div>
-                    <div class="mb-1">
-                        <HxButton Text="Cancel" Color="ThemeColor.Danger"
-                                  Size="ButtonSize.Small" OnClick="@(() => RunCancel(agent))" />
-                    </div>
-                </div>
-
-                @if (_results.TryGetValue(agent, out var result))
+                @if (_searchError.TryGetValue(agent, out var searchErr) && searchErr is not null)
                 {
-                    <pre class="mt-3 p-3 bg-light border rounded small" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto">@result</pre>
+                    <HxAlert Color="ThemeColor.Danger" CssClass="mt-2">@searchErr</HxAlert>
+                }
+
+                @{
+                    var patients = _results.TryGetValue(agent, out var pr) ? pr : null;
+                    var allAppts = patients
+                        ?.SelectMany(p => p.Appointments.Select(a => (Patient: p, Appt: a)))
+                        .OrderByDescending(x => x.Appt.StartDate ?? DateTime.MinValue)
+                        .ThenByDescending(x => x.Appt.StartTime ?? TimeSpan.Zero)
+                        .ToList();
+                }
+
+                @if (allAppts is { Count: > 0 })
+                {
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Patient</th>
+                                    <th>Provider</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                    <th>Duration</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var (patient, appt) in allAppts)
+                                {
+                                    <tr>
+                                        <td class="text-nowrap">@(appt.StartDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                                        <td class="text-nowrap">
+                                            @if (appt.StartTime.HasValue)
+                                            { @($"{appt.StartTime.Value:hh\\:mm}") }
+                                            else { <span>—</span> }
+                                        </td>
+                                        <td>
+                                            <span class="fw-semibold">@patient.FullName</span>
+                                            @if (!string.IsNullOrWhiteSpace(patient.MobilePhone ?? patient.HomePhone))
+                                            {
+                                                <br /><span class="text-muted small">@(patient.MobilePhone ?? patient.HomePhone)</span>
+                                            }
+                                        </td>
+                                        <td>@(appt.ProviderName ?? "—")</td>
+                                        <td>@(appt.Reason ?? "—")</td>
+                                        <td>
+                                            @if (!string.IsNullOrWhiteSpace(appt.Status))
+                                            {
+                                                var sc = appt.Status.ToLower() switch
+                                                {
+                                                    "cancelled" or "canceled" => "secondary",
+                                                    "confirmed"               => "success",
+                                                    _                         => "light text-dark border"
+                                                };
+                                                <span class="badge bg-@sc">@appt.Status</span>
+                                            }
+                                            else { <span class="text-muted">—</span> }
+                                        </td>
+                                        <td>@(appt.Duration ?? "—")</td>
+                                        <td class="text-end">
+                                            @{
+                                                var apptDateTime = appt.StartDate.HasValue
+                                                    ? appt.StartDate.Value.Date + (appt.StartTime ?? TimeSpan.Zero)
+                                                    : (DateTime?)null;
+                                                var isPast = apptDateTime.HasValue && apptDateTime.Value < DateTime.Now;
+                                            }
+                                            @if (!isPast)
+                                            {
+                                                <HxButton Text="Cancel" Color="ThemeColor.Danger"
+                                                          Size="ButtonSize.Small"
+                                                          OnClick="@(() => RunCancel(agent, appt.EventId))" />
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else if (allAppts is { Count: 0 })
+                {
+                    <p class="text-muted small mt-2">No appointments found.</p>
                 }
             </BodyTemplate>
         </HxCard>
@@ -127,9 +221,10 @@ else
 @code {
     List<string>      _agents  = [];
     List<AgentKeyDto> _keys    = [];
-    readonly Dictionary<string, SearchAppointmentsRequest> _search  = new();
-    readonly Dictionary<string, string>                    _eventId = new();
-    readonly Dictionary<string, string>                    _results = new();
+    readonly Dictionary<string, SearchAppointmentsRequest>       _search      = new();
+    readonly Dictionary<string, List<PatientAppointmentResult>>  _results     = new();
+    readonly Dictionary<string, string?>                         _searchError = new();
+    readonly Dictionary<string, AgentHealthResponse>             _health      = new();
 
     string   _newAgentId = string.Empty;
     string?  _keyError;
@@ -154,7 +249,6 @@ else
             foreach (var a in _agents)
             {
                 _search.TryAdd(a, new SearchAppointmentsRequest());
-                _eventId.TryAdd(a, "");
             }
         }
         catch (HttpRequestException)
@@ -201,15 +295,55 @@ else
 
     async Task RunSearch(string agent)
     {
-        _results[agent] = "Searching...";
+        _searchError[agent] = null;
+        _results.Remove(agent);
         StateHasChanged();
-        _results[agent] = await Api.SearchAppointmentsAsync(agent, _search[agent]) ?? "(no response)";
+        try
+        {
+            _results[agent] = await Api.SearchAppointmentsAsync(agent, _search[agent]);
+        }
+        catch (Refit.ApiException ex)
+        {
+            _searchError[agent] = $"Search failed: {(int)ex.StatusCode} {ex.ReasonPhrase}";
+        }
+        catch (Exception ex)
+        {
+            _searchError[agent] = $"Search failed: {ex.Message}";
+        }
     }
 
-    async Task RunCancel(string agent)
+    async Task RunCancel(string agent, string eventId)
     {
-        _results[agent] = "Cancelling...";
-        StateHasChanged();
-        _results[agent] = await Api.CancelAppointmentAsync(agent, _eventId[agent]) ?? "(no response)";
+        try
+        {
+            await Api.CancelAppointmentAsync(agent, eventId);
+        }
+        catch (Refit.ApiException ex)
+        {
+            _searchError[agent] = $"Cancel failed: {(int)ex.StatusCode} {ex.ReasonPhrase}";
+            return;
+        }
+        catch (Exception ex)
+        {
+            _searchError[agent] = $"Cancel failed: {ex.Message}";
+            return;
+        }
+        await RunSearch(agent);
+    }
+
+    async Task CheckHealth(string agent)
+    {
+        try
+        {
+            _health[agent] = await Api.GetAgentHealthAsync(agent);
+        }
+        catch (Refit.ApiException ex)
+        {
+            _searchError[agent] = $"Health check failed: {(int)ex.StatusCode} {ex.ReasonPhrase}";
+        }
+        catch (Exception ex)
+        {
+            _searchError[agent] = $"Health check failed: {ex.Message}";
+        }
     }
 }

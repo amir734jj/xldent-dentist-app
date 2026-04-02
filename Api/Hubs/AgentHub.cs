@@ -12,7 +12,10 @@ public sealed class AgentHub(AgentRegistry registry, IEfRepository repository, I
     private const int MaxFailures   = 5;
     private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
 
-    private IBasicCrud<AgentApiKey> AgentApiKeysDal => repository.For<AgentApiKey>();
+    private IBasicCrud<AgentApiKey> AgentApiKeysDal
+    {
+        get { return repository.For<AgentApiKey>(); }
+    }
 
     public override Task OnDisconnectedAsync(Exception? exception)
     {

@@ -36,7 +36,7 @@ var envUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
 if (!string.IsNullOrWhiteSpace(envUrl))
 {
-    connectionString = envUrl;
+    connectionString = ConnectionProfile.WithZeroDateTimeFlags(envUrl);
     Log.Information("Using connection from DATABASE_URL environment variable");
 }
 else if (isService)

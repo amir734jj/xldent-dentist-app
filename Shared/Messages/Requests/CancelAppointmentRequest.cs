@@ -6,5 +6,8 @@ namespace Shared.Messages.Requests;
 public sealed class CancelAppointmentRequest : IAgentRequest
 {
     public string EventId { get; set; } = string.Empty;
-    public AgentRequestType RequestType => AgentRequestType.CancelAppointment;
+    public AgentRequestType RequestType
+    {
+        get { return AgentRequestType.CancelAppointment; }
+    }
 }

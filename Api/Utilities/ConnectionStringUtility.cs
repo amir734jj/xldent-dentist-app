@@ -15,9 +15,15 @@ public static class ConnectionStringUtility
     {
         var table = UrlUtility.UrlToResource(connectionStringUrl);
 
-        if (!table.ContainKeys("Host", "Username", "Password", "Database", "ApplicationName")) return string.Empty;
+        if (!table.ContainKeys("Host", "Username", "Password", "Database", "ApplicationName"))
+        {
+            return string.Empty;
+        }
 
-        if (!int.TryParse(table["Port"], out var port) || port <= 0) port = 5432;
+        if (!int.TryParse(table["Port"], out var port) || port <= 0)
+        {
+            port = 5432;
+        }
 
         var connectionStringBuilder = new NpgsqlConnectionStringBuilder
         {

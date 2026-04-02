@@ -1,4 +1,5 @@
 using Refit;
+using Shared.Appointments;
 using Shared.Contracts;
 using Shared.Messages.Requests;
 
@@ -39,24 +40,55 @@ public sealed class ApiService(IAuthApi authApi, IAgentsApi agentsApi, IAgentKey
         }
     }
 
-    public Task<List<string>> GetAgentsAsync() => agentsApi.GetAgentsAsync();
+    public Task<List<string>> GetAgentsAsync()
+    {
+        return agentsApi.GetAgentsAsync();
+    }
 
-    public Task<string?> SearchAppointmentsAsync(string agentId, SearchAppointmentsRequest request)
-        => agentsApi.SearchAppointmentsAsync(agentId, request)!;
+    public Task<AgentHealthResponse> GetAgentHealthAsync(string agentId)
+    {
+        return agentsApi.GetHealthAsync(agentId);
+    }
+
+    public Task<List<PatientAppointmentResult>> SearchAppointmentsAsync(string agentId, SearchAppointmentsRequest request)
+    {
+        return agentsApi.SearchAppointmentsAsync(agentId, request);
+    }
 
     public Task<string?> CancelAppointmentAsync(string agentId, string eventId)
-        => agentsApi.CancelAppointmentAsync(agentId, new Shared.Contracts.CancelAppointmentRequest(eventId))!;
+    {
+        return agentsApi.CancelAppointmentAsync(agentId, new Shared.Contracts.CancelAppointmentRequest(eventId))!;
+    }
 
     // Agent key management
-    public Task<List<AgentKeyDto>> GetAgentKeysAsync() => agentKeysApi.GetAllAsync();
+    public Task<List<AgentKeyDto>> GetAgentKeysAsync()
+    {
+        return agentKeysApi.GetAllAsync();
+    }
 
     public Task<AgentKeyDto> CreateAgentKeyAsync(string agentId)
-        => agentKeysApi.CreateAsync(new CreateAgentKeyRequest(agentId));
+    {
+        return agentKeysApi.CreateAsync(new CreateAgentKeyRequest(agentId));
+    }
 
-    public Task DeleteAgentKeyAsync(string agentId) => agentKeysApi.DeleteAsync(agentId);
+    public Task DeleteAgentKeyAsync(string agentId)
+    {
+        return agentKeysApi.DeleteAsync(agentId);
+    }
 
     // User management (Admin only)
-    public Task<List<UserDto>> GetUsersAsync() => usersApi.GetAllAsync();
-    public Task ActivateUserAsync(Guid id) => usersApi.ActivateAsync(id);
-    public Task DeactivateUserAsync(Guid id) => usersApi.DeactivateAsync(id);
+    public Task<List<UserDto>> GetUsersAsync()
+    {
+        return usersApi.GetAllAsync();
+    }
+
+    public Task ActivateUserAsync(Guid id)
+    {
+        return usersApi.ActivateAsync(id);
+    }
+
+    public Task DeactivateUserAsync(Guid id)
+    {
+        return usersApi.DeactivateAsync(id);
+    }
 }

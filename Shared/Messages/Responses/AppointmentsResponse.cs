@@ -7,5 +7,8 @@ namespace Shared.Messages.Responses;
 public sealed class AppointmentsResponse : IAgentResponse
 {
     public IReadOnlyList<PatientAppointmentResult> Data { get; set; } = [];
-    public AgentResponseType ResponseType => AgentResponseType.Appointments;
+    public AgentResponseType ResponseType
+    {
+        get { return AgentResponseType.Appointments; }
+    }
 }

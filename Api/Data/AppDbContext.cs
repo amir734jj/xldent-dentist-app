@@ -7,7 +7,10 @@ namespace Api.Data;
 public sealed class AppDbContext
     : IdentityDbContext<User, Role, Guid>
 {
-    public DbSet<AgentApiKey> AgentApiKeys => Set<AgentApiKey>();
+    public DbSet<AgentApiKey> AgentApiKeys
+    {
+        get { return Set<AgentApiKey>(); }
+    }
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {

@@ -7,5 +7,8 @@ public sealed class HealthResponse : IAgentResponse
 {
     public bool DbConnected { get; set; }
     public DateTimeOffset? CheckedAt { get; set; }
-    public AgentResponseType ResponseType => AgentResponseType.Health;
+    public AgentResponseType ResponseType
+    {
+        get { return AgentResponseType.Health; }
+    }
 }

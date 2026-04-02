@@ -10,8 +10,15 @@ public sealed class AuthService(ILocalStorageService storage)
 
     public string? Token { get; private set; }
     public string? Role  { get; private set; }
-    public bool IsAuthenticated => Token is not null;
-    public bool IsAdmin => Role == Roles.Admin;
+    public bool IsAuthenticated
+    {
+        get { return Token is not null; }
+    }
+
+    public bool IsAdmin
+    {
+        get { return Role == Roles.Admin; }
+    }
 
     public async Task InitAsync()
     {

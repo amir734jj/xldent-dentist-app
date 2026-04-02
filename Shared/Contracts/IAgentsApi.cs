@@ -1,4 +1,5 @@
 using Refit;
+using Shared.Appointments;
 using Shared.Messages.Requests;
 
 namespace Shared.Contracts;
@@ -10,7 +11,7 @@ public interface IAgentsApi
     Task<List<string>> GetAgentsAsync();
 
     [Post("/api/agents/{agentId}/search")]
-    Task<string> SearchAppointmentsAsync(string agentId, [Body] SearchAppointmentsRequest request);
+    Task<List<PatientAppointmentResult>> SearchAppointmentsAsync(string agentId, [Body] SearchAppointmentsRequest request);
 
     [Get("/api/agents/{agentId}/health")]
     Task<AgentHealthResponse> GetHealthAsync(string agentId);
