@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using System.Threading.RateLimiting;
 using Api.Data;
 using Serilog;
 using Api.Data.Entities;
@@ -9,6 +10,7 @@ using Api.Utilities;
 using EfCoreRepository.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -66,6 +68,17 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(opt =>
+{
+    opt.AddFixedWindowLimiter("login", w =>
+    {
+        w.Window            = TimeSpan.FromMinutes(1);
+        w.PermitLimit       = 10;
+        w.QueueLimit        = 0;
+        w.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    });
+    opt.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 builder.Services.AddMemoryCache();
 builder.Services.AddControllers();
 builder.Services.AddSignalR().AddNewtonsoftJsonProtocol();
@@ -102,6 +115,17 @@ builder.Services.AddCors(opt =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.EnsureCreated();
+    // Add LastLoginAt column if upgrading from a schema that predates it (idempotent)
+    db.Database.ExecuteSqlRaw("""
+        ALTER TABLE "AspNetUsers"
+        ADD COLUMN IF NOT EXISTS "LastLoginAt" TIMESTAMP WITH TIME ZONE;
+        """);
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -109,6 +133,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

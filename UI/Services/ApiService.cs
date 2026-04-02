@@ -13,7 +13,7 @@ public sealed class ApiService(IAuthApi authApi, IAgentsApi agentsApi, IAgentKey
         try
         {
             var response = await authApi.LoginAsync(new LoginRequest(email, password));
-            await auth.SetTokenAsync(response.Token, response.Role);
+            await auth.SetTokenAsync(response.Token, response.Role, response.UserId);
             return null;
         }
         catch (ApiException ex) when ((int)ex.StatusCode == 403)

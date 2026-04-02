@@ -6,4 +6,5 @@ namespace Api.Data.Entities;
 public sealed class User : IdentityUser<Guid>, IEntity
 {
     public bool IsActive { get; set; }
+    public DateTimeOffset? LastLoginAt { get; set; }
 }

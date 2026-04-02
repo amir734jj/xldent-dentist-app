@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Shared;
 using Shared.Contracts;
@@ -55,6 +56,7 @@ public sealed class AuthController(
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("login")]
     public async Task<IActionResult> Login(LoginRequest req)
     {
         var user = await users.FindByEmailAsync(req.Email);
@@ -70,7 +72,11 @@ public sealed class AuthController(
 
         var userRoles = await users.GetRolesAsync(user);
         var role = userRoles.FirstOrDefault() ?? Roles.User;
-        return Ok(new LoginResponse(BuildToken(user, role), role));
+
+        user.LastLoginAt = DateTimeOffset.UtcNow;
+        await users.UpdateAsync(user);
+
+        return Ok(new LoginResponse(BuildToken(user, role), role, user.Id));
     }
 
     [HttpGet("me")]

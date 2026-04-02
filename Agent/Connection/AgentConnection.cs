@@ -57,6 +57,20 @@ public sealed class AgentConnection(
             }
         });
 
+        _hub.Reconnected += async newConnectionId =>
+        {
+            Log.Information("Reconnected to hub — re-registering agent '{AgentId}'", agentId);
+            try
+            {
+                await _hub.InvokeAsync("RegisterAsync", agentId, apiKey, ct);
+                _ = HeartbeatLoopAsync(ct);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Re-registration after reconnect failed");
+            }
+        };
+
         await _hub.StartAsync(ct);
         await _hub.InvokeAsync("RegisterAsync", agentId, apiKey, ct);
         Log.Information("Agent connected as '{AgentId}' → {HubUrl}", agentId, hubUrl);
@@ -99,16 +113,17 @@ public sealed class AgentConnection(
 
     private async Task HeartbeatLoopAsync(CancellationToken ct)
     {
-        while (!ct.IsCancellationRequested && _hub?.State == HubConnectionState.Connected)
+        while (!ct.IsCancellationRequested && _hub?.State != HubConnectionState.Disconnected)
         {
             await Task.Delay(HeartbeatInterval, ct);
+            if (_hub?.State != HubConnectionState.Connected)
+            {
+                continue;
+            }
             var dbConnected = await CheckDbAsync(ct);
             try
             {
-                if (_hub.State == HubConnectionState.Connected)
-                {
-                    await _hub.InvokeAsync("HeartbeatAsync", dbConnected, ct);
-                }
+                await _hub.InvokeAsync("HeartbeatAsync", dbConnected, ct);
             }
             catch (Exception ex)
             {

@@ -68,10 +68,4 @@ public sealed class AgentHub(AgentRegistry registry, IEfRepository repository, I
 
         return Task.CompletedTask;
     }
-
-    public Task SendResultAsync(string requestId, string jsonResult)
-    {
-        registry.Complete(requestId, jsonResult);
-        return Task.CompletedTask;
-    }
 }

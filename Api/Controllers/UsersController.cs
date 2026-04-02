@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Api.Data.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -12,6 +13,10 @@ namespace Api.Controllers;
 [Authorize(Roles = Roles.Admin)]
 public sealed class UsersController(UserManager<User> users) : ControllerBase
 {
+    private Guid CurrentUserId =>
+        Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
+                   ?? throw new InvalidOperationException("User ID claim missing."));
+
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -20,7 +25,7 @@ public sealed class UsersController(UserManager<User> users) : ControllerBase
         foreach (var u in all)
         {
             var roles = await users.GetRolesAsync(u);
-            result.Add(new UserDto(u.Id, u.Email!, u.IsActive, roles.ToList()));
+            result.Add(new UserDto(u.Id, u.Email!, u.IsActive, roles.ToList(), u.LastLoginAt));
         }
         return Ok(result);
     }
@@ -42,6 +47,11 @@ public sealed class UsersController(UserManager<User> users) : ControllerBase
     [HttpPost("{id:guid}/deactivate")]
     public async Task<IActionResult> Deactivate(Guid id)
     {
+        if (id == CurrentUserId)
+        {
+            return BadRequest("You cannot deactivate your own account.");
+        }
+
         var user = await users.FindByIdAsync(id.ToString());
         if (user is null)
         {

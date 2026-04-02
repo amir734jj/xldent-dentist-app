@@ -37,6 +37,7 @@ else
                             <th>Email</th>
                             <th>Role</th>
                             <th>Status</th>
+                            <th>Last Login</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -57,10 +58,25 @@ else
                                     }
                                 </td>
                                 <td>
+                                    @if (u.LastLoginAt.HasValue)
+                                    {
+                                        <span title="@u.LastLoginAt.Value.ToLocalTime().ToString("f")">
+                                            @u.LastLoginAt.Value.ToLocalTime().ToString("MMM d, yyyy HH:mm")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Never</span>
+                                    }
+                                </td>
+                                <td>
                                     @if (u.IsActive)
                                     {
+                                        var isSelf = u.Id == Auth.UserId;
                                         <HxButton Text="Deactivate" Color="ThemeColor.Warning"
                                                   Size="ButtonSize.Small"
+                                                  Enabled="@(!isSelf)"
+                                                  title="@(isSelf ? "You cannot deactivate your own account" : null)"
                                                   OnClick="@(() => Toggle(u, false))" />
                                     }
                                     else

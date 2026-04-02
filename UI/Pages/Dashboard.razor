@@ -51,7 +51,7 @@ else
                                 <td class="text-end">
                                     <HxButton Text="Delete" Color="ThemeColor.Danger"
                                               Size="ButtonSize.Small"
-                                              OnClick="@(() => DeleteKey(k.AgentId))" />
+                                              OnClick="@(() => ConfirmDeleteKey(k.AgentId))" />
                                 </td>
                             </tr>
                         }
@@ -71,6 +71,14 @@ else
             @if (_keyError is not null)
             {
                 <HxAlert Color="ThemeColor.Danger" CssClass="mt-2">@_keyError</HxAlert>
+            }
+            @if (_deleteConfirmAgentId is not null)
+            {
+                <HxAlert Color="ThemeColor.Warning" CssClass="mt-3 d-flex align-items-center gap-3">
+                    <span>Delete key for <strong>@_deleteConfirmAgentId</strong>? This will disconnect that agent.</span>
+                    <HxButton Text="Yes, delete" Color="ThemeColor.Danger" Size="ButtonSize.Small" OnClick="DeleteKeyConfirmed" />
+                    <HxButton Text="Cancel" Color="ThemeColor.Secondary" Size="ButtonSize.Small" OnClick="@(() => _deleteConfirmAgentId = null)" />
+                </HxAlert>
             }
         </BodyTemplate>
     </HxCard>
@@ -102,7 +110,8 @@ else
                         }
                     }
                     <HxButton Text="Check Health" Color="ThemeColor.Secondary"
-                              Size="ButtonSize.Small" OnClick="@(() => CheckHealth(agent))" />
+                              Size="ButtonSize.Small" OnClick="@(() => CheckHealth(agent))"
+                              Spinner="@(_checkingHealth.Contains(agent))" />
                 </div>
             </HeaderTemplate>
             <BodyTemplate>
@@ -123,7 +132,8 @@ else
                 </div>
                 <div class="mb-3">
                     <HxButton Text="Search" Color="ThemeColor.Primary"
-                              Size="ButtonSize.Small" OnClick="@(() => RunSearch(agent))" />
+                              Size="ButtonSize.Small" OnClick="@(() => RunSearch(agent))"
+                              Spinner="@(_searching.Contains(agent))" />
                 </div>
 
                 @if (_searchError.TryGetValue(agent, out var searchErr) && searchErr is not null)
@@ -200,6 +210,7 @@ else
                                             {
                                                 <HxButton Text="Cancel" Color="ThemeColor.Danger"
                                                           Size="ButtonSize.Small"
+                                                          Spinner="@(_cancelling.Contains(appt.EventId))"
                                                           OnClick="@(() => RunCancel(agent, appt.EventId))" />
                                             }
                                         </td>
@@ -221,11 +232,15 @@ else
 @code {
     List<string>      _agents  = [];
     List<AgentKeyDto> _keys    = [];
-    readonly Dictionary<string, SearchAppointmentsRequest>       _search      = new();
-    readonly Dictionary<string, List<PatientAppointmentResult>>  _results     = new();
-    readonly Dictionary<string, string?>                         _searchError = new();
-    readonly Dictionary<string, AgentHealthResponse>             _health      = new();
+    readonly Dictionary<string, SearchAppointmentsRequest>       _search        = new();
+    readonly Dictionary<string, List<PatientAppointmentResult>>  _results       = new();
+    readonly Dictionary<string, string?>                         _searchError   = new();
+    readonly Dictionary<string, AgentHealthResponse>             _health        = new();
+    readonly HashSet<string>                                     _searching     = [];
+    readonly HashSet<string>                                     _checkingHealth = [];
+    readonly HashSet<string>                                     _cancelling    = [];
 
+    string?  _deleteConfirmAgentId;
     string   _newAgentId = string.Empty;
     string?  _keyError;
     string?  _loadError;
@@ -287,8 +302,16 @@ else
         }
     }
 
-    async Task DeleteKey(string agentId)
+    void ConfirmDeleteKey(string agentId)
     {
+        _deleteConfirmAgentId = agentId;
+    }
+
+    async Task DeleteKeyConfirmed()
+    {
+        if (_deleteConfirmAgentId is null) return;
+        var agentId = _deleteConfirmAgentId;
+        _deleteConfirmAgentId = null;
         await Api.DeleteAgentKeyAsync(agentId);
         _keys.RemoveAll(k => k.AgentId == agentId);
     }
@@ -297,6 +320,7 @@ else
     {
         _searchError[agent] = null;
         _results.Remove(agent);
+        _searching.Add(agent);
         StateHasChanged();
         try
         {
@@ -310,10 +334,16 @@ else
         {
             _searchError[agent] = $"Search failed: {ex.Message}";
         }
+        finally
+        {
+            _searching.Remove(agent);
+        }
     }
 
     async Task RunCancel(string agent, string eventId)
     {
+        _cancelling.Add(eventId);
+        StateHasChanged();
         try
         {
             await Api.CancelAppointmentAsync(agent, eventId);
@@ -321,18 +351,23 @@ else
         catch (Refit.ApiException ex)
         {
             _searchError[agent] = $"Cancel failed: {(int)ex.StatusCode} {ex.ReasonPhrase}";
+            _cancelling.Remove(eventId);
             return;
         }
         catch (Exception ex)
         {
             _searchError[agent] = $"Cancel failed: {ex.Message}";
+            _cancelling.Remove(eventId);
             return;
         }
+        _cancelling.Remove(eventId);
         await RunSearch(agent);
     }
 
     async Task CheckHealth(string agent)
     {
+        _checkingHealth.Add(agent);
+        StateHasChanged();
         try
         {
             _health[agent] = await Api.GetAgentHealthAsync(agent);
@@ -344,6 +379,10 @@ else
         catch (Exception ex)
         {
             _searchError[agent] = $"Health check failed: {ex.Message}";
+        }
+        finally
+        {
+            _checkingHealth.Remove(agent);
         }
     }
 }
