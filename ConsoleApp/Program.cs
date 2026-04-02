@@ -1,8 +1,6 @@
 using System.Reflection;
 using ConsoleApp.Connection;
 using Data;
-using Data.Interfaces;
-using Data.Queries;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -60,12 +58,20 @@ services.Scan(scan => scan
 
 await using var provider = services.BuildServiceProvider();
 
-using var scope = provider.CreateScope();
-var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-var service = scope.ServiceProvider.GetRequiredService<IPatientAppointmentService>();
+var hubUrl = Environment.GetEnvironmentVariable("AGENT_HUB_URL")
+    ?? "http://localhost:5097/hubs/agent";
+var agentId = Environment.GetEnvironmentVariable("AGENT_ID") ?? "clinic-1";
+var apiKey  = Environment.GetEnvironmentVariable("AGENT_API_KEY") ?? "REPLACE-WITH-AGENT-API-KEY";
 
-logger.LogInformation("Searching for patients with name {Name}", "Hesamian");
+using var cts = new CancellationTokenSource();
+Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
-var results = await service.SearchAsync(new PatientSearchParams { Name = "Hesamian" });
+await using var agent = new AgentConnection(hubUrl, agentId, apiKey, provider);
+await agent.StartAsync(cts.Token);
 
-logger.LogInformation("Patient: {0}", results);
+Log.Information("Agent running. Press Ctrl+C to exit.");
+try { await Task.Delay(Timeout.Infinite, cts.Token); }
+catch (OperationCanceledException) { }
+
+Log.Information("Agent stopped.");
+

@@ -1,0 +1,113 @@
+using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting.Systemd;
+using Microsoft.Extensions.Hosting.WindowsServices;
+using Serilog;
+using Service;
+using Service.Connection;
+using Velopack;
+using XLDENTProxy;
+
+VelopackApp.Build().Run();
+
+var isService = WindowsServiceHelpers.IsWindowsService() || SystemdHelpers.IsSystemdService();
+
+if (args.Contains("--install-service"))   { ServiceInstaller.Install();   return; }
+if (args.Contains("--uninstall-service")) { ServiceInstaller.Uninstall(); return; }
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: "logs/app-.log",
+        rollingInterval: RollingInterval.Day,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
+
+if (!isService)
+    await UpdateService.CheckAndApplyUpdatesAsync();
+
+string connectionString;
+var envUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+
+if (!string.IsNullOrWhiteSpace(envUrl))
+{
+    connectionString = envUrl;
+    Log.Information("Using connection from DATABASE_URL environment variable");
+}
+else if (isService)
+{
+    using var store = new ConnectionStore();
+    var saved = store.GetLastUsed();
+    if (saved is null)
+    {
+        Log.Fatal("No saved MySQL connection. Run the app interactively first to configure it, then re-install the service.");
+        return;
+    }
+    connectionString = saved.ToConnectionString();
+    Log.Information("Using saved MySQL connection: {Server}:{Port}/{Database}", saved.Server, saved.Port, saved.Database);
+}
+else
+{
+    using var store = new ConnectionStore();
+    var saved = store.GetLastUsed();
+    var profile = ConnectionSetup.Prompt(saved);
+    store.SaveProfile(profile);
+    connectionString = profile.ToConnectionString();
+}
+
+AgentConfig agentConfig;
+if (isService)
+{
+    using var configStore = new ConnectionStore();
+    var saved = configStore.GetAgentConfig();
+    if (saved is null)
+    {
+        Log.Fatal("No saved agent config. Run the app interactively first to configure it, then re-install the service.");
+        return;
+    }
+    agentConfig = saved;
+    Log.Information("Using saved agent config: {AgentId} → {HubUrl}", agentConfig.AgentId, agentConfig.HubUrl);
+}
+else
+{
+    using var configStore = new ConnectionStore();
+    var savedConfig = configStore.GetAgentConfig();
+    agentConfig = AgentSetup.Prompt(savedConfig);
+    configStore.SaveAgentConfig(agentConfig);
+}
+
+var host = new HostBuilder()
+    .UseContentRoot(AppContext.BaseDirectory)
+    .UseSerilog()
+    .UseWindowsService(options => options.ServiceName = "XLDentAgent")
+    .UseSystemd()
+    .ConfigureServices((_, svc) =>
+    {
+        svc.AddSingleton(agentConfig);
+
+        svc.AddDbContext<DrDataContext>(options =>
+            options.UseMySQL(connectionString));
+
+        svc.Scan(scan => scan
+            .FromAssemblies(Assembly.Load("XLDENTProxy"))
+            .AddClasses()
+            .AsImplementedInterfaces()
+            .WithScopedLifetime());
+
+        svc.AddHostedService<AgentWorker>();
+    })
+    .Build();
+
+try
+{
+    await host.RunAsync();
+}
+finally
+{
+    await Log.CloseAndFlushAsync();
+}
+
+

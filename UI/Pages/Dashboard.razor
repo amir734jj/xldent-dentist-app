@@ -1,0 +1,202 @@
+@page "/"
+@using Shared.Messages.Requests
+@inject ApiService Api
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<PageTitle>Dashboard – XLDent</PageTitle>
+
+@if (!Auth.IsAuthenticated)
+{
+    <p>Redirecting to login...</p>
+}
+else
+{
+    <div class="d-flex align-items-center mb-4">
+        <h4 class="mb-0">XLDent Agent Dashboard</h4>
+        <div class="ms-auto d-flex gap-2">
+            <HxButton Text="Refresh" Color="ThemeColor.Secondary" Size="ButtonSize.Small" OnClick="Refresh" />
+            <HxButton Text="Logout" Color="ThemeColor.Danger" Size="ButtonSize.Small" OnClick="Logout" />
+        </div>
+    </div>
+
+    <HxCard CssClass="mb-4">
+        <HeaderTemplate><strong>Agent API Keys</strong></HeaderTemplate>
+        <BodyTemplate>
+            @if (_keys.Count == 0)
+            {
+                <p class="text-muted small">No keys provisioned yet.</p>
+            }
+            else
+            {
+                <table class="table table-sm table-bordered mb-0">
+                    <thead>
+                        <tr>
+                            <th>Agent ID</th>
+                            <th>Clinic</th>
+                            <th>API Key</th>
+                            <th>Created</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var k in _keys)
+                        {
+                            <tr>
+                                <td>@k.AgentId</td>
+                                <td>@k.ClinicName</td>
+                                <td><code>@k.ApiKey</code></td>
+                                <td>@k.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>
+                                    <HxButton Text="Delete" Color="ThemeColor.Danger"
+                                              Size="ButtonSize.Small"
+                                              OnClick="@(() => DeleteKey(k.AgentId))" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+
+            <hr />
+            <h6 class="mb-3">Create New Key</h6>
+            <div class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <HxInputText Label="Agent ID" @bind-Value="_newAgentId" Placeholder="clinic-1" />
+                </div>
+                <div class="col-auto">
+                    <HxInputText Label="Clinic Name" @bind-Value="_newClinicName" Placeholder="Main Street Dental" />
+                </div>
+                <div class="col-auto align-self-end" style="padding-bottom: 1rem;">
+                    <HxButton Text="Generate Key" Color="ThemeColor.Primary"
+                              Size="ButtonSize.Small" OnClick="CreateKey" />
+                </div>
+            </div>
+            @if (_keyError is not null)
+            {
+                <HxAlert Color="ThemeColor.Danger" CssClass="mt-2">@_keyError</HxAlert>
+            }
+        </BodyTemplate>
+    </HxCard>
+
+    @if (_agents.Count == 0)
+    {
+        <p class="text-muted">No agents connected.</p>
+    }
+
+    @foreach (var agent in _agents)
+    {
+        <HxCard CssClass="mb-4">
+            <HeaderTemplate><strong>Agent: @agent</strong></HeaderTemplate>
+            <BodyTemplate>
+                <h6>Search Appointments</h6>
+                <div class="row g-2 mb-2">
+                    <div class="col-md-3">
+                        <HxInputText Label="Name" @bind-Value="_search[agent].Name" Placeholder="Smith" />
+                    </div>
+                    <div class="col-md-3">
+                        <HxInputText Label="Phone" @bind-Value="_search[agent].Phone" Placeholder="4141234567" />
+                    </div>
+                    <div class="col-md-3">
+                        <HxInputText Label="Email" @bind-Value="_search[agent].Email" Placeholder="patient@example.com" />
+                    </div>
+                    <div class="col-md-3">
+                        <HxInputText Label="Event ID" @bind-Value="_search[agent].EventId" Placeholder="UUID" />
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <HxButton Text="Search" Color="ThemeColor.Primary"
+                              Size="ButtonSize.Small" OnClick="@(() => RunSearch(agent))" />
+                </div>
+
+                <h6>Cancel Appointment</h6>
+                <HxInputText Label="" @bind-Value="_eventId[agent]"
+                             Placeholder="Appointment event UUID" CssClass="mb-2" />
+                <div class="mb-3">
+                    <HxButton Text="Cancel Appointment" Color="ThemeColor.Danger"
+                              Size="ButtonSize.Small" OnClick="@(() => RunCancel(agent))" />
+                </div>
+
+                @if (_results.TryGetValue(agent, out var result))
+                {
+                    <pre class="p-2 bg-light border rounded small" style="white-space: pre-wrap">@result</pre>
+                }
+            </BodyTemplate>
+        </HxCard>
+    }
+}
+
+@code {
+    List<string>      _agents  = [];
+    List<AgentKeyDto> _keys    = [];
+    Dictionary<string, SearchAppointmentsRequest> _search  = new();
+    Dictionary<string, string>                    _eventId = new();
+    Dictionary<string, string>                    _results = new();
+
+    string _newAgentId    = string.Empty;
+    string _newClinicName = string.Empty;
+    string? _keyError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
+        await Refresh();
+    }
+
+    async Task Refresh()
+    {
+        _agents = await Api.GetAgentsAsync();
+        _keys   = await Api.GetAgentKeysAsync();
+        foreach (var a in _agents)
+        {
+            _search.TryAdd(a, new SearchAppointmentsRequest());
+            _eventId.TryAdd(a, "");
+        }
+    }
+
+    async Task CreateKey()
+    {
+        _keyError = null;
+        if (string.IsNullOrWhiteSpace(_newAgentId) || string.IsNullOrWhiteSpace(_newClinicName))
+        {
+            _keyError = "Agent ID and Clinic Name are required.";
+            return;
+        }
+        try
+        {
+            var created = await Api.CreateAgentKeyAsync(_newAgentId.Trim(), _newClinicName.Trim());
+            _keys.Add(created);
+            _newAgentId = _newClinicName = string.Empty;
+        }
+        catch (Refit.ApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            _keyError = $"Agent ID '{_newAgentId}' already exists.";
+        }
+    }
+
+    async Task DeleteKey(string agentId)
+    {
+        await Api.DeleteAgentKeyAsync(agentId);
+        _keys.RemoveAll(k => k.AgentId == agentId);
+    }
+
+    async Task RunSearch(string agent)
+    {
+        _results[agent] = "Searching...";
+        StateHasChanged();
+        _results[agent] = await Api.SearchAppointmentsAsync(agent, _search[agent]) ?? "(no response)";
+    }
+
+    async Task RunCancel(string agent)
+    {
+        _results[agent] = "Cancelling...";
+        StateHasChanged();
+        _results[agent] = await Api.CancelAppointmentAsync(agent, _eventId[agent]) ?? "(no response)";
+    }
+
+    void Logout()
+    {
+        Auth.ClearToken();
+        Nav.NavigateTo("/login");
+    }
+}

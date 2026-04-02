@@ -1,0 +1,49 @@
+@page "/register"
+@inject ApiService Api
+@inject NavigationManager Nav
+
+<div style="max-width: 360px; margin: 4rem auto;">
+    <HxCard>
+        <HeaderTemplate>
+            <strong>Create Account</strong>
+        </HeaderTemplate>
+        <BodyTemplate>
+            <HxInputText Label="Email" @bind-Value="_email" InputType="InputType.Email" />
+            <HxInputText Label="Password" @bind-Value="_password" InputType="InputType.Password" />
+
+            @if (_error is not null)
+            {
+                <HxAlert Color="ThemeColor.Danger" CssClass="mt-2">@_error</HxAlert>
+            }
+
+            @if (_success)
+            {
+                <HxAlert Color="ThemeColor.Success" CssClass="mt-2">
+                    Registered successfully. <a href="/login">Sign in</a>
+                </HxAlert>
+            }
+
+            <div class="mt-3">
+                <HxButton Text="Register" Color="ThemeColor.Primary" OnClick="Submit" Enabled="@(!_busy)" />
+            </div>
+        </BodyTemplate>
+    </HxCard>
+</div>
+
+@code {
+    string _email = "", _password = "";
+    string? _error;
+    bool _busy, _success;
+
+    async Task Submit()
+    {
+        _busy = true; _error = null;
+        try
+        {
+            _success = await Api.RegisterAsync(_email, _password);
+            if (!_success)
+                _error = "Registration failed. Password must be at least 8 characters.";
+        }
+        finally { _busy = false; }
+    }
+}

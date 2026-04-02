@@ -41,13 +41,10 @@ jobs:
         include:
           - os: windows-latest
             rid: win-x64
-            mainExe: ConsoleApp.exe
+            mainExe: Agent.exe
           - os: ubuntu-latest
             rid: linux-x64
-            mainExe: ConsoleApp
-          - os: macos-latest
-            rid: osx-x64
-            mainExe: ConsoleApp
+            mainExe: Agent
 
     runs-on: ${{ matrix.os }}
 
@@ -74,12 +71,13 @@ jobs:
 
       - name: Publish
         run: >
-          dotnet publish ConsoleApp/ConsoleApp.csproj
+          dotnet publish Agent/Agent.csproj
           -c Release
           -r ${{ matrix.rid }}
           --self-contained
           -p:UseAppHost=true
           -o publish/${{ matrix.rid }}
+
 
       - name: Pack
         shell: bash
@@ -93,11 +91,11 @@ jobs:
 
       - name: Upload to GitHub Release
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: >
-          vpk upload github
-          --repoUrl     https://github.com/${{ github.repository }}
-          --token       ${{ secrets.GITHUB_TOKEN }}
-          --tag         v${{ needs.create-release.outputs.version }}
-          --releaseName "XLDent v${{ needs.create-release.outputs.version }}"
-          --outputDir   releases/${{ matrix.rid }}
+          gh release upload v${{ needs.create-release.outputs.version }}
+          releases/${{ matrix.rid }}/*
+          --repo ${{ github.repository }}
+          --clobber
 
