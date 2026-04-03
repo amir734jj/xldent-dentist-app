@@ -4,4 +4,6 @@ public record AgentHealthResponse(
     string AgentId,
     AgentStatus Status,
     DateTimeOffset? LastSeen,
-    bool DbConnected);
+    bool DbConnected,
+    string? Version,
+    DateTimeOffset? UpdatedAt);

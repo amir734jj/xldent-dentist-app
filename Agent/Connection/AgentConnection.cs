@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -80,7 +81,24 @@ public sealed class AgentConnection(
     private async Task<IAgentResponse> HandleHealthAsync(CancellationToken ct)
     {
         var dbConnected = await CheckDbAsync(ct);
-        return new HealthResponse { DbConnected = dbConnected, CheckedAt = DateTimeOffset.UtcNow };
+
+        var asmPath = Assembly.GetEntryAssembly()?.Location;
+        var updatedAt = !string.IsNullOrEmpty(asmPath) && File.Exists(asmPath)
+            ? (DateTimeOffset?)new DateTimeOffset(new FileInfo(asmPath).LastWriteTimeUtc, TimeSpan.Zero)
+            : null;
+
+        // Prefer the Velopack installed version (populated after VelopackApp.Build().Run());
+        // fall back to the assembly version when running outside a Velopack installation.
+        var version = Velopack.Locators.VelopackLocator.Current.CurrentlyInstalledVersion?.ToString()
+            ?? Assembly.GetEntryAssembly()?.GetName().Version?.ToString();
+
+        return new HealthResponse
+        {
+            DbConnected = dbConnected,
+            CheckedAt   = DateTimeOffset.UtcNow,
+            Version     = version,
+            UpdatedAt   = updatedAt,
+        };
     }
 
     private async Task<IAgentResponse> HandleSearchAsync(SearchAppointmentsRequest req)

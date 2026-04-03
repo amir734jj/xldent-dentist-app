@@ -33,7 +33,7 @@ Parser.Default
 
 if (handled)
 {
-    Log.Fatal("Unhandled exception occured during installation.");
+    Log.Fatal("Unhandled exception occurred during installation.");
     return;
 }
 

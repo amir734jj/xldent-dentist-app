@@ -61,7 +61,7 @@ public sealed class AgentsController(AgentRegistry registry, IHubContext<AgentHu
         var cid = registry.GetConnectionId(agentId);
         if (cid is null)
         {
-            return Ok(new AgentHealthResponse(agentId, AgentStatus.Offline, null, false));
+            return Ok(new AgentHealthResponse(agentId, AgentStatus.Offline, null, false, null, null));
         }
 
         try
@@ -74,7 +74,7 @@ public sealed class AgentsController(AgentRegistry registry, IHubContext<AgentHu
             if (response is HealthResponse health)
             {
                 var status = health.DbConnected ? AgentStatus.Online : AgentStatus.Degraded;
-                return Ok(new AgentHealthResponse(agentId, status, health.CheckedAt, health.DbConnected));
+                return Ok(new AgentHealthResponse(agentId, status, health.CheckedAt, health.DbConnected, health.Version, health.UpdatedAt));
             }
         }
         catch (Exception)
@@ -82,7 +82,7 @@ public sealed class AgentsController(AgentRegistry registry, IHubContext<AgentHu
             // agent unreachable — fall through to offline
         }
 
-        return Ok(new AgentHealthResponse(agentId, AgentStatus.Offline, null, false));
+        return Ok(new AgentHealthResponse(agentId, AgentStatus.Offline, null, false, null, null));
     }
 
     [HttpPost("{agentId}/search")]
