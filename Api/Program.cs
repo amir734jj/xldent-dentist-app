@@ -155,14 +155,14 @@ app.MapFallback("api/{**rest}", async context =>
         $"Failed to find the endpoint for {context.Request.Method}:{context.Request.GetDisplayUrl()}");
 });
 
-app.MapFallback("", async context =>
+// SPA catch-all
+if (app.Environment.IsDevelopment())
 {
-    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
-    await context.Response.WriteAsync(
-        $"Failed to find the endpoint for {context.Request.Method}{context.Request.GetDisplayUrl()}");
-});
-
-// SPA catch-all — serves index.html for all client-side navigation routes
-app.UseSpa(_ => { });
+    app.MapFallback(() => Results.Text("XLDent API server is running."));
+}
+else
+{
+    app.MapFallbackToFile("index.html");
+}
 
 app.Run();
