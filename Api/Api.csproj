@@ -20,6 +20,7 @@
         </PackageReference>
         <PackageReference Include="Npgsql" Version="10.0.2" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+        <PackageReference Include="Serilog.Sinks.Sentry" Version="2.4.3" />
         <PackageReference Include="SimpleEfCoreRepository" Version="3.1.21" />
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />

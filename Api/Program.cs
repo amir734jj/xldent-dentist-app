@@ -16,16 +16,27 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
-Log.Logger = new LoggerConfiguration()
+var builder = WebApplication.CreateBuilder(args);
+
+var isProduction = builder.Environment.IsProduction();
+var sentryDsn = builder.Configuration.GetValue<string>("SENTRY_DSN");
+
+var loggerConfig = new LoggerConfiguration()
     .MinimumLevel.Information()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
     .WriteTo.File(
         path: "logs/api-.log",
         rollingInterval: RollingInterval.Day,
-        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-    .CreateLogger();
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
 
-var builder = WebApplication.CreateBuilder(args);
+if (isProduction && !string.IsNullOrWhiteSpace(sentryDsn))
+{
+    loggerConfig.WriteTo.Sentry(
+        dsn: sentryDsn,
+        restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error);
+}
+
+Log.Logger = loggerConfig.CreateLogger();
 
 builder.Host.UseSerilog();
 
@@ -164,4 +175,4 @@ else
     app.MapFallbackToFile("index.html");
 }
 
-app.Run();
+await app.RunAsync();
