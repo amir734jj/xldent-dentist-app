@@ -104,7 +104,8 @@ jobs:
     needs: create-release
     runs-on: ubuntu-latest
     env:
-      HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      HEROKU_API_KEY: ${{ secrets.HEROKU_TOKEN }}
+      HEROKU_APP_NAME: xldent
     steps:
       - uses: actions/checkout@v4
 
@@ -115,8 +116,8 @@ jobs:
         run: heroku container:login
 
       - name: Build & Push image
-        run: heroku container:push web --app ${{ secrets.HEROKU_APP_NAME }}
+        run: heroku container:push web --app ${{ env.HEROKU_APP_NAME }}
 
       - name: Release container
-        run: heroku container:release web --app ${{ secrets.HEROKU_APP_NAME }}
+        run: heroku container:release web --app ${{ env.HEROKU_APP_NAME }}
 
