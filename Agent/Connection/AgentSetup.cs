@@ -10,7 +10,7 @@ public static class AgentSetup
         AnsiConsole.Write(new Rule("[bold blue]XLDent — Agent Connection[/]").RuleStyle("grey"));
         AnsiConsole.WriteLine();
 
-        if (saved is not null)
+        if (saved is not null && !string.IsNullOrEmpty(saved.ServerUrl))
         {
             AnsiConsole.Write(new Panel(
                     $"[green]{saved.ServerUrl}[/]\n" +
@@ -31,12 +31,12 @@ public static class AgentSetup
 
         var serverUrl = AnsiConsole.Prompt(
             new TextPrompt<string>("[green]Server URL[/] (e.g. https://xldent-....herokuapp.com):")
-                .DefaultValue(saved?.ServerUrl ?? AgentConstants.DefaultServerUrl)
+                .DefaultValue(!string.IsNullOrEmpty(saved?.ServerUrl) ? saved!.ServerUrl : AgentConstants.DefaultServerUrl)
                 .PromptStyle("yellow"));
 
         var agentId = AnsiConsole.Prompt(
             new TextPrompt<string>("[green]Agent ID[/]:")
-                .DefaultValue(saved?.AgentId ?? AgentConstants.DefaultAgentId)
+                .DefaultValue(!string.IsNullOrEmpty(saved?.AgentId) ? saved!.AgentId : AgentConstants.DefaultAgentId)
                 .PromptStyle("yellow"));
 
         var apiKey = AnsiConsole.Prompt(

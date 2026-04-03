@@ -23,6 +23,9 @@ public sealed class AgentConnection(
 
     public async Task StartAsync(CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(hubUrl))
+            throw new InvalidOperationException("Server URL is not configured. Run the agent interactively to set it up.");
+
         _hub = new HubConnectionBuilder()
             .WithUrl(UrlCombine.Combine(hubUrl, "hubs/agent"))
             .WithAutomaticReconnect()
