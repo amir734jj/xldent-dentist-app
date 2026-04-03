@@ -15,25 +15,14 @@ namespace Api.Controllers;
 [Authorize]
 public sealed partial class AgentKeysController(IEfRepository repository) : ControllerBase
 {
-    private IBasicCrud<AgentApiKey> AgentApiKeysDal
-    {
-        get { return repository.For<AgentApiKey>(); }
-    }
+    private IBasicCrud<AgentApiKey> AgentApiKeysDal => repository.For<AgentApiKey>();
 
-    private bool IsAdmin
-    {
-        get { return User.IsInRole(Roles.Admin); }
-    }
+    private bool IsAdmin => User.IsInRole(Roles.Admin);
 
-    private Guid CurrentUserId
-    {
-        get
-        {
-            return Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
-                              ?? User.FindFirstValue("sub")
-                              ?? throw new InvalidOperationException("User ID claim missing."));
-        }
-    }
+    private Guid CurrentUserId =>
+        Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
+                   ?? User.FindFirstValue("sub")
+                   ?? throw new InvalidOperationException("User ID claim missing."));
 
     [HttpGet]
     public async Task<IActionResult> GetAll()

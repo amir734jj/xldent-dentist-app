@@ -5,8 +5,5 @@ namespace Shared.Messages.Requests;
 
 public sealed class GetHealthRequest : IAgentRequest
 {
-    public AgentRequestType RequestType
-    {
-        get { return AgentRequestType.GetHealth; }
-    }
+    public AgentRequestType RequestType => AgentRequestType.GetHealth;
 }

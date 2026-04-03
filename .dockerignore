@@ -1,0 +1,12 @@
+# Build artifacts
+**/bin/
+**/obj/
+
+# Git / IDE
+.git/
+.vs/
+.idea/
+**/*.user
+
+# Logs and local data
+logs/

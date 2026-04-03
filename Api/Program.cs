@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Http.Extensions;
 using Api.Data;
 using Serilog;
 using Api.Data.Entities;
@@ -80,6 +81,7 @@ builder.Services.AddRateLimiter(opt =>
     opt.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 builder.Services.AddMemoryCache();
+builder.Services.AddSpaStaticFiles(config => config.RootPath = "wwwroot");
 builder.Services.AddControllers();
 builder.Services.AddSignalR().AddNewtonsoftJsonProtocol();
 builder.Services.AddSingleton<AgentRegistry>();
@@ -115,16 +117,15 @@ builder.Services.AddCors(opt =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+app.UseDefaultFiles();
+app.UseSpaStaticFiles(new StaticFileOptions
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
-    // Add LastLoginAt column if upgrading from a schema that predates it (idempotent)
-    db.Database.ExecuteSqlRaw("""
-        ALTER TABLE "AspNetUsers"
-        ADD COLUMN IF NOT EXISTS "LastLoginAt" TIMESTAMP WITH TIME ZONE;
-        """);
-}
+    OnPrepareResponse = ctx =>
+    {
+        // Cache static assets for 1 hour — avoids stale UI after deploys
+        ctx.Context.Response.Headers.CacheControl = "public,max-age=3600";
+    }
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -138,5 +139,23 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<AgentHub>("/hubs/agent");
+
+// Return 405 for unmatched /api/** routes so they don't fall through to the SPA
+app.MapFallback("api/{**rest}", async context =>
+{
+    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+    await context.Response.WriteAsync(
+        $"Failed to find the endpoint for {context.Request.Method}:{context.Request.GetDisplayUrl()}");
+});
+
+app.MapFallback("", async context =>
+{
+    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+    await context.Response.WriteAsync(
+        $"Failed to find the endpoint for {context.Request.Method}{context.Request.GetDisplayUrl()}");
+});
+
+// SPA catch-all — serves index.html for all client-side navigation routes
+app.UseSpa(_ => { });
 
 app.Run();

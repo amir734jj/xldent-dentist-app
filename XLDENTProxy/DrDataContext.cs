@@ -3,13 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace XLDENTProxy;
 
-public partial class DrDataContext : DbContext
+public partial class DrDataContext(DbContextOptions<DrDataContext> options) : DbContext(options)
 {
-    public DrDataContext(DbContextOptions<DrDataContext> options)
-        : base(options)
-    {
-    }
-
     internal virtual DbSet<Acessosoper> Acessosopers { get; set; }
 
     internal virtual DbSet<Acfchpac> Acfchpacs { get; set; }

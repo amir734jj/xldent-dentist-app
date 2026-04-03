@@ -6,8 +6,5 @@ namespace Shared.Messages.Requests;
 
 public sealed class SearchAppointmentsRequest : PatientSearchParams, IAgentRequest
 {
-    public AgentRequestType RequestType
-    {
-        get { return AgentRequestType.SearchAppointments; }
-    }
+    public AgentRequestType RequestType => AgentRequestType.SearchAppointments;
 }

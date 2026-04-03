@@ -4,17 +4,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Api.Data;
 
-public sealed class AppDbContext
-    : IdentityDbContext<User, Role, Guid>
+public sealed class AppDbContext : IdentityDbContext<User, Role, Guid>
 {
-    public DbSet<AgentApiKey> AgentApiKeys
-    {
-        get { return Set<AgentApiKey>(); }
-    }
-
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
     }
+
+    public DbSet<AgentApiKey> AgentApiKeys => Set<AgentApiKey>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
