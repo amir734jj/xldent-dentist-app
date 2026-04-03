@@ -1,4 +1,5 @@
 using System.Reflection;
+using CommandLine;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Hosting.Systemd;
 using Microsoft.Extensions.Hosting.WindowsServices;
 using Serilog;
 using Agent;
+using Agent.Commands;
 using Agent.Connection;
 using Velopack;
 using XLDENTProxy;
@@ -23,8 +25,17 @@ Log.Logger = new LoggerConfiguration()
 
 var isService = WindowsServiceHelpers.IsWindowsService() || SystemdHelpers.IsSystemdService();
 
-if (args.Contains("--install-service"))   { ServiceInstaller.Install();   return; }
-if (args.Contains("--uninstall-service")) { ServiceInstaller.Uninstall(); return; }
+var handled = false;
+Parser.Default
+    .ParseArguments<RunOptions, InstallServiceOptions, UninstallServiceOptions>(args)
+    .WithParsed<InstallServiceOptions>(_   => { ServiceInstaller.Install();   handled = true; })
+    .WithParsed<UninstallServiceOptions>(_ => { ServiceInstaller.Uninstall(); handled = true; });
+
+if (handled)
+{
+    Log.Fatal("Unhandled exception occured during installation.");
+    return;
+}
 
 if (!isService)
 {
@@ -114,5 +125,3 @@ finally
 {
     await Log.CloseAndFlushAsync();
 }
-
-

@@ -117,7 +117,7 @@ builder.Services.AddSwaggerGen(opt =>
 builder.Services.AddCors(opt =>
     opt.AddDefaultPolicy(p => p
         .WithOrigins(
-            builder.Configuration.GetSection("Cors:Origins").Get<string[]>()!)
+            builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [])
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials()));
@@ -144,7 +144,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHub<AgentHub>("/hubs/agent");
+app.MapHub<AgentHub>("/hubs/agent").AllowAnonymous();
 
 // Return 405 for unmatched /api/** routes so they don't fall through to the SPA
 app.MapFallback("api/{**rest}", async context =>

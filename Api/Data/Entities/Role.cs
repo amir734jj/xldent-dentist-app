@@ -3,7 +3,4 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Api.Data.Entities;
 
-public class Role : IdentityRole<Guid>, IEntity
-{
-    
-}
+public class Role : IdentityRole<Guid>, IEntity;
