@@ -1,4 +1,5 @@
 using XLDENTProxy.Interfaces;
+using XLDENTProxy.Models;
 using Microsoft.EntityFrameworkCore;
 using Shared.Appointments;
 
@@ -237,8 +238,35 @@ public sealed class PatientAppointmentService(DrDataContext context) : IPatientA
             return false;
         }
 
-        apptEvent.Status = AppointmentStatus.Cancelled;
+        // Mark the apevents record as cancelled — mirrors what XLDent does when
+        // the user right-clicks an appointment and selects Cancel.
+        apptEvent.Status = "Cancela";
         apptEvent.Done   = true;
+
+        // XLDent also writes a row to the `faltas` table. This is the table used
+        // for no-show / cancellation reporting and patient history.
+        // FaltaCancela enum: 'Falta' (no-show), 'Cancela' (cancelled), 'Failed', 'Canceled'
+        var detail = await context.Apdetails
+            .FirstOrDefaultAsync(d => d.EventId == eventId);
+
+        if (detail?.Account is not null
+            && apptEvent.StartDate.HasValue
+            && apptEvent.StartTime.HasValue)
+        {
+            var falta = new Falta
+            {
+                Mecano       = detail.Account.Value,
+                Medico       = (uint?)detail.ProviderId,
+                Dia          = apptEvent.StartDate.Value,
+                Hora         = apptEvent.StartTime.Value,
+                FaltaCancela = "Cancela",
+                Marcacao     = apptEvent.Subject ?? string.Empty,
+                Obs          = string.Empty,
+                OfficeId     = apptEvent.OfficeId,
+            };
+            context.Faltas.Add(falta);
+        }
+
         await context.SaveChangesAsync();
         return true;
     }
