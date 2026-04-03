@@ -308,7 +308,11 @@ else
 
     async Task DeleteKeyConfirmed()
     {
-        if (_deleteConfirmAgentId is null) return;
+        if (_deleteConfirmAgentId is null)
+        {
+            return;
+        }
+
         var agentId = _deleteConfirmAgentId;
         _deleteConfirmAgentId = null;
         await Api.DeleteAgentKeyAsync(agentId);

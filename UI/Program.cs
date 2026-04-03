@@ -22,7 +22,11 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Logging.AddSerilog(dispose: true);
 
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"]!;
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"];
+if (string.IsNullOrEmpty(apiBaseUrl))
+{
+    apiBaseUrl = builder.HostEnvironment.BaseAddress;
+}
 
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddTransient<BearerTokenHandler>();
