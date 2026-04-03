@@ -88,7 +88,7 @@ builder.Services.AddRateLimiter(opt =>
     opt.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 builder.Services.AddMemoryCache();
-builder.Services.AddSpaStaticFiles(config => config.RootPath = "wwwroot");
+
 builder.Services.AddControllers();
 builder.Services.AddSignalR().AddNewtonsoftJsonProtocol();
 builder.Services.AddSingleton<AgentRegistry>();
@@ -124,12 +124,11 @@ builder.Services.AddCors(opt =>
 
 var app = builder.Build();
 
-app.UseDefaultFiles();
-app.UseSpaStaticFiles(new StaticFileOptions
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
     {
-        // Cache static assets for 1 hour — avoids stale UI after deploys
         ctx.Context.Response.Headers.CacheControl = "public,max-age=3600";
     }
 });
