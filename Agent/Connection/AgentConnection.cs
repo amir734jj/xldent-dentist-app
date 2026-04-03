@@ -5,6 +5,7 @@ using Shared.Appointments;
 using Shared.Messages.Interfaces;
 using Shared.Messages.Requests;
 using Shared.Messages.Responses;
+using UrlCombineLib;
 using XLDENTProxy;
 using XLDENTProxy.Interfaces;
 
@@ -23,7 +24,7 @@ public sealed class AgentConnection(
     public async Task StartAsync(CancellationToken ct = default)
     {
         _hub = new HubConnectionBuilder()
-            .WithUrl(hubUrl)
+            .WithUrl(UrlCombine.Combine(hubUrl, "hubs/agent"))
             .WithAutomaticReconnect()
             .AddNewtonsoftJsonProtocol()
             .Build();
@@ -35,14 +36,9 @@ public sealed class AgentConnection(
             {
                 return request switch
                 {
-                    GetHealthRequest =>
-                        await HandleHealthAsync(ct),
-
-                    SearchAppointmentsRequest search =>
-                        await HandleSearchAsync(search),
-
-                    CancelAppointmentRequest cancel =>
-                        await HandleCancelAsync(cancel),
+                    GetHealthRequest => await HandleHealthAsync(ct),
+                    SearchAppointmentsRequest search => await HandleSearchAsync(search),
+                    CancelAppointmentRequest cancel => await HandleCancelAsync(cancel),
 
                     _ => new AgentErrorResponse
                     {

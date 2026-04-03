@@ -82,7 +82,7 @@ if (isService)
         return;
     }
     agentConfig = saved;
-    Log.Information("Using saved agent config: {AgentId} → {HubUrl}", agentConfig.AgentId, agentConfig.HubUrl);
+    Log.Information("Using saved agent config: {AgentId} → {ServerUrl}", agentConfig.AgentId, agentConfig.ServerUrl);
 }
 else
 {

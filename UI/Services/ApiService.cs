@@ -91,4 +91,9 @@ public sealed class ApiService(IAuthApi authApi, IAgentsApi agentsApi, IAgentKey
     {
         return usersApi.DeactivateAsync(id);
     }
+
+    public Task DeleteUserAsync(Guid id)
+    {
+        return usersApi.DeleteAsync(id);
+    }
 }

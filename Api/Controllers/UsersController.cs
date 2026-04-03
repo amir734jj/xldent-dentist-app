@@ -62,4 +62,22 @@ public sealed class UsersController(UserManager<User> users) : ControllerBase
         await users.UpdateAsync(user);
         return Ok();
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        if (id == CurrentUserId)
+        {
+            return BadRequest("You cannot delete your own account.");
+        }
+
+        var user = await users.FindByIdAsync(id.ToString());
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        await users.DeleteAsync(user);
+        return NoContent();
+    }
 }

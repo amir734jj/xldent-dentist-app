@@ -38,9 +38,9 @@ public sealed class AgentWorker(
         {
             await pipeline.ExecuteAsync(async ct =>
             {
-                await using var agent = new AgentConnection(config.HubUrl, config.AgentId, config.ApiKey, services);
+                await using var agent = new AgentConnection(config.ServerUrl, config.AgentId, config.ApiKey, services);
                 await agent.StartAsync(ct);
-                logger.LogInformation("Agent running as '{AgentId}' → {HubUrl}", config.AgentId, config.HubUrl);
+                logger.LogInformation("Agent running as '{AgentId}' → {ServerUrl}", config.AgentId, config.ServerUrl);
                 await Task.Delay(Timeout.Infinite, ct);
             }, stoppingToken);
         }

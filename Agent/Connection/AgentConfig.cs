@@ -7,7 +7,7 @@ public sealed class AgentConfig
     [PrimaryKey]
     public int Id { get; set; }
 
-    public string HubUrl  { get; set; } = string.Empty;
+    public string ServerUrl { get; set; } = string.Empty;
     public string AgentId { get; set; } = string.Empty;
     public string ApiKey  { get; set; } = string.Empty;
 }

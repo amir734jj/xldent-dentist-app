@@ -15,4 +15,8 @@ public interface IUsersApi
     [Post("/api/users/{id}/deactivate")]
     [Headers("Authorization: Bearer")]
     Task DeactivateAsync(Guid id);
+
+    [Delete("/api/users/{id}")]
+    [Headers("Authorization: Bearer")]
+    Task DeleteAsync(Guid id);
 }

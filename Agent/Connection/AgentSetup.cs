@@ -13,7 +13,7 @@ public static class AgentSetup
         if (saved is not null)
         {
             AnsiConsole.Write(new Panel(
-                    $"[green]{saved.HubUrl}[/]\n" +
+                    $"[green]{saved.ServerUrl}[/]\n" +
                     $"Agent ID [yellow]{saved.AgentId}[/]  " +
                     $"API Key [grey]{MaskKey(saved.ApiKey)}[/]")
                 .Header("[grey]Saved config[/]")
@@ -29,9 +29,9 @@ public static class AgentSetup
             AnsiConsole.WriteLine();
         }
 
-        var hubUrl = AnsiConsole.Prompt(
-            new TextPrompt<string>("[green]Hub URL[/]:")
-                .DefaultValue(saved?.HubUrl ?? AgentConstants.DefaultHubUrl)
+        var serverUrl = AnsiConsole.Prompt(
+            new TextPrompt<string>("[green]Server URL[/] (e.g. https://xldent-....herokuapp.com):")
+                .DefaultValue(saved?.ServerUrl ?? AgentConstants.DefaultServerUrl)
                 .PromptStyle("yellow"));
 
         var agentId = AnsiConsole.Prompt(
@@ -53,9 +53,9 @@ public static class AgentSetup
 
         return new AgentConfig
         {
-            HubUrl  = hubUrl,
-            AgentId = agentId,
-            ApiKey  = apiKey
+            ServerUrl = serverUrl.TrimEnd('/'),
+            AgentId   = agentId,
+            ApiKey    = apiKey
         };
     }
 

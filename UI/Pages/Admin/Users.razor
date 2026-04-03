@@ -69,7 +69,7 @@ else
                                         <span class="text-muted">Never</span>
                                     }
                                 </td>
-                                <td>
+                                <td class="d-flex gap-1">
                                     @if (u.IsActive)
                                     {
                                         var isSelf = u.Id == Auth.UserId;
@@ -85,6 +85,12 @@ else
                                                   Size="ButtonSize.Small"
                                                   OnClick="@(() => Toggle(u, true))" />
                                     }
+                                    @{ var isSelfDelete = u.Id == Auth.UserId; }
+                                    <HxButton Text="Delete" Color="ThemeColor.Danger"
+                                              Size="ButtonSize.Small"
+                                              Enabled="@(!isSelfDelete)"
+                                              title="@(isSelfDelete ? "You cannot delete your own account" : null)"
+                                              OnClick="@(() => Delete(u))" />
                                 </td>
                             </tr>
                         }
@@ -124,16 +130,22 @@ else
         try
         {
             if (activate)
-            {
                 await Api.ActivateUserAsync(user.Id);
-            }
             else
-            {
                 await Api.DeactivateUserAsync(user.Id);
-            }
 
             await Load();
         }
         catch { _error = "Failed to update user."; }
+    }
+
+    async Task Delete(UserDto user)
+    {
+        try
+        {
+            await Api.DeleteUserAsync(user.Id);
+            await Load();
+        }
+        catch { _error = "Failed to delete user."; }
     }
 }
