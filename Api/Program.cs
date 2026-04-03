@@ -29,6 +29,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog();
 
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    var portConfig = builder.Configuration.GetValue<string>("PORT");
+    var port = !string.IsNullOrEmpty(portConfig) && int.TryParse(portConfig, out var p) ? p : 5000;
+    serverOptions.ListenAnyIP(port);
+});
+
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseNpgsql(ConnectionStringUtility.ConnectionStringUrlToPgResource(builder.Configuration.GetValue<string>("DATABASE_URL")!)));
 

@@ -1,6 +1,5 @@
 using Api.Data.Entities;
 using Api.Services;
-using EfCoreRepository;
 using EfCoreRepository.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
