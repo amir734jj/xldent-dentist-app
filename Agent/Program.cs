@@ -14,14 +14,25 @@ using XLDENTProxy;
 
 VelopackApp.Build().Run();
 
-Log.Logger = new LoggerConfiguration()
+var loggerConfig = new LoggerConfiguration()
     .MinimumLevel.Information()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
     .WriteTo.File(
         path: "logs/app-.log",
         rollingInterval: RollingInterval.Day,
-        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-    .CreateLogger();
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
+
+#if !DEBUG
+var sentryDsn = Environment.GetEnvironmentVariable("SENTRY_DSN");
+if (!string.IsNullOrWhiteSpace(sentryDsn))
+{
+    loggerConfig.WriteTo.Sentry(
+        dsn: sentryDsn,
+        restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error);
+}
+#endif
+
+Log.Logger = loggerConfig.CreateLogger();
 
 var isService = WindowsServiceHelpers.IsWindowsService() || SystemdHelpers.IsSystemdService();
 
