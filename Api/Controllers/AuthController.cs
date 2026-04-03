@@ -9,6 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Api.Data.Entities;
+using Api.Extensions;
 
 namespace Api.Controllers;
 
@@ -83,7 +84,7 @@ public sealed class AuthController(
     [Authorize]
     public IActionResult Me()
     {
-        var email = User.FindFirstValue(JwtRegisteredClaimNames.Email);
+        var email = User.GetEmail();
         return Ok(new MeResponse(email!));
     }
 

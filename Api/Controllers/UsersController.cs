@@ -1,5 +1,5 @@
-using System.Security.Claims;
 using Api.Data.Entities;
+using Api.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -13,9 +13,7 @@ namespace Api.Controllers;
 [Authorize(Roles = Roles.Admin)]
 public sealed class UsersController(UserManager<User> users) : ControllerBase
 {
-    private Guid CurrentUserId =>
-        Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
-                   ?? throw new InvalidOperationException("User ID claim missing."));
+    private Guid CurrentUserId => User.GetUserId();
 
     [HttpGet]
     public async Task<IActionResult> GetAll()

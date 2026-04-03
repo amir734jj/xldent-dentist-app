@@ -1,9 +1,11 @@
 using System.Reflection;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Http.Extensions;
 using Api.Data;
 using Serilog;
+using Serilog.Events;
 using Api.Data.Entities;
 using Api.Hubs;
 using Api.Services;
@@ -23,9 +25,21 @@ var sentryDsn = builder.Configuration["Sentry:Dsn"];
 
 var loggerConfig = new LoggerConfiguration()
     .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("System", LogEventLevel.Error)
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.AspNetCore.Hosting.Diagnostics", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.AspNetCore.Routing.EndpointMiddleware", LogEventLevel.Warning)
+    .Filter.ByExcluding(x =>
+        x.Properties.TryGetValue("RequestPath", out var requestPath) &&
+        (requestPath.ToString().Contains("/api/health") ||
+         requestPath.ToString().Contains("/health\"")))
     .Enrich.WithProperty("Application", "xldent-api")
     .Enrich.FromLogContext()
-    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {user} {Message:lj}{NewLine}{Exception}")
     .WriteTo.File(
         path: "logs/api-.log",
         rollingInterval: RollingInterval.Day,
@@ -110,6 +124,7 @@ builder.Services.AddRateLimiter(opt =>
     opt.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 builder.Services.AddMemoryCache();
+builder.Services.AddHealthChecks();
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR().AddNewtonsoftJsonProtocol();
@@ -169,17 +184,17 @@ app.UseSerilogRequestLogging(opts =>
 {
     opts.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
     {
-        var user = "anonymous";
-
-        if (httpContext.User.Identity is { IsAuthenticated: true } && !string.IsNullOrEmpty(httpContext.User.Identity.Name))
-        {
-            user = httpContext.User.Identity.Name;
-        }
+        var user = httpContext.User.Identity is { IsAuthenticated: true }
+            ? (httpContext.User.FindFirst(ClaimTypes.Email)?.Value
+               ?? httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+               ?? "authenticated")
+            : "anonymous";
 
         diagnosticContext.Set("user", user);
     };
 });
 app.MapControllers();
+app.MapHealthChecks("/api/health").AllowAnonymous();
 app.MapHub<AgentHub>("/hubs/agent").AllowAnonymous();
 
 // Return 405 for unmatched /api/** routes so they don't fall through to the SPA

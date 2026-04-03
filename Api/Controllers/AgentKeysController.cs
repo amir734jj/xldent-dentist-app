@@ -1,6 +1,6 @@
-using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Api.Data.Entities;
+using Api.Extensions;
 using EfCoreRepository.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,10 +19,7 @@ public sealed partial class AgentKeysController(IEfRepository repository) : Cont
 
     private bool IsAdmin => User.IsInRole(Roles.Admin);
 
-    private Guid CurrentUserId =>
-        Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
-                   ?? User.FindFirstValue("sub")
-                   ?? throw new InvalidOperationException("User ID claim missing."));
+    private Guid CurrentUserId => User.GetUserId();
 
     [HttpGet]
     public async Task<IActionResult> GetAll()

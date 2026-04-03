@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Api.Data.Entities;
+using Api.Extensions;
 using Api.Hubs;
 using Api.Services;
 using EfCoreRepository.Interfaces;
@@ -21,10 +22,7 @@ public sealed class AgentsController(AgentRegistry registry, IHubContext<AgentHu
 {
     private IBasicCrud<AgentApiKey> AgentApiKeysDal => repository.For<AgentApiKey>();
 
-    private Guid CurrentUserId =>
-        Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
-                   ?? User.FindFirstValue("sub")
-                   ?? throw new InvalidOperationException("User ID claim missing."));
+    private Guid CurrentUserId => User.GetUserId();
 
     private bool IsAdmin => User.IsInRole(Roles.Admin);
 
