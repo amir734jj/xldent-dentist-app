@@ -17,6 +17,8 @@ public sealed class AuthService(ILocalStorageService storage)
 
     public bool IsAdmin => Role == Roles.Admin;
 
+    public event Action? AuthStateChanged;
+
     public async Task InitAsync()
     {
         Token  = await storage.GetItemAsync<string>(TokenKey);
@@ -29,6 +31,7 @@ public sealed class AuthService(ILocalStorageService storage)
         Token  = token;
         Role   = role;
         UserId = userId;
+        AuthStateChanged?.Invoke();
         await storage.SetItemAsync(TokenKey,  token);
         await storage.SetItemAsync(RoleKey,   role);
         await storage.SetItemAsync(UserIdKey, userId);
@@ -39,6 +42,7 @@ public sealed class AuthService(ILocalStorageService storage)
         Token  = null;
         Role   = null;
         UserId = null;
+        AuthStateChanged?.Invoke();
         await storage.RemoveItemAsync(TokenKey);
         await storage.RemoveItemAsync(RoleKey);
         await storage.RemoveItemAsync(UserIdKey);

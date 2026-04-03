@@ -1,0 +1,119 @@
+@using System.Net
+@using System.Text.RegularExpressions
+@inject ApiService Api
+
+<HxCard CssClass="mb-4">
+    <HeaderTemplate><strong>Agent API Keys</strong></HeaderTemplate>
+    <BodyTemplate>
+        @if (_keys.Count == 0)
+        {
+            <p class="text-muted small mb-3">No keys provisioned yet.</p>
+        }
+        else
+        {
+            <table class="table table-sm table-hover mb-3">
+                <thead class="table-light">
+                    <tr>
+                        <th>Agent ID</th>
+                        <th>API Key</th>
+                        <th>Created</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var k in _keys)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@k.AgentId</td>
+                            <td><code class="user-select-all">@k.ApiKey</code></td>
+                            <td class="text-muted small">@k.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="text-end">
+                                <HxButton Text="Delete" Color="ThemeColor.Danger"
+                                          Size="ButtonSize.Small"
+                                          OnClick="@(() => ConfirmDeleteKey(k.AgentId))" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <h6 class="mb-2">Provision New Agent</h6>
+        <p class="text-muted small mb-2">Agent ID must start with a letter or digit. Letters, digits, and hyphens only — no spaces.</p>
+        <div style="max-width: 500px;">
+            <label class="form-label">Agent ID</label>
+            <div class="input-group">
+                <InputText @bind-Value="_newAgentId" class="form-control" placeholder="my-clinic" />
+                <HxButton Text="Generate Key" Color="ThemeColor.Primary" OnClick="CreateKey" />
+            </div>
+        </div>
+        @if (_keyError is not null)
+        {
+            <HxAlert Color="ThemeColor.Danger" CssClass="mt-2">@_keyError</HxAlert>
+        }
+        @if (_deleteConfirmAgentId is not null)
+        {
+            <HxAlert Color="ThemeColor.Warning" CssClass="mt-3 d-flex align-items-center gap-3">
+                <span>Delete key for <strong>@_deleteConfirmAgentId</strong>? This will disconnect that agent.</span>
+                <HxButton Text="Yes, delete" Color="ThemeColor.Danger" Size="ButtonSize.Small" OnClick="DeleteKeyConfirmed" />
+                <HxButton Text="Cancel" Color="ThemeColor.Secondary" Size="ButtonSize.Small" OnClick="@(() => _deleteConfirmAgentId = null)" />
+            </HxAlert>
+        }
+    </BodyTemplate>
+</HxCard>
+
+@code {
+    List<AgentKeyDto> _keys                = [];
+    string            _newAgentId          = string.Empty;
+    string?           _keyError;
+    string?           _deleteConfirmAgentId;
+
+    private static readonly Regex AgentIdRegex =
+        new("^[a-zA-Z0-9][a-zA-Z0-9-]*$", RegexOptions.Compiled);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _keys = await Api.GetAgentKeysAsync();
+    }
+
+    async Task CreateKey()
+    {
+        _keyError = null;
+        var id = _newAgentId.Trim();
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            _keyError = "Agent ID is required.";
+            return;
+        }
+        if (!AgentIdRegex.IsMatch(id))
+        {
+            _keyError = "Agent ID must start with a letter or digit and may only contain letters, digits, and hyphens.";
+            return;
+        }
+        try
+        {
+            var created = await Api.CreateAgentKeyAsync(id);
+            _keys.Add(created);
+            _newAgentId = string.Empty;
+        }
+        catch (Refit.ApiException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
+        {
+            _keyError = $"Agent ID '{id}' already exists.";
+        }
+        catch (Refit.ApiException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
+        {
+            _keyError = await ex.GetContentAsAsync<string>() ?? "Invalid Agent ID.";
+        }
+    }
+
+    void ConfirmDeleteKey(string agentId) => _deleteConfirmAgentId = agentId;
+
+    async Task DeleteKeyConfirmed()
+    {
+        if (_deleteConfirmAgentId is null) return;
+        var agentId = _deleteConfirmAgentId;
+        _deleteConfirmAgentId = null;
+        await Api.DeleteAgentKeyAsync(agentId);
+        _keys.RemoveAll(k => k.AgentId == agentId);
+    }
+}

@@ -1,11 +1,8 @@
 @page "/"
-@using System.Net
-@using System.Text.RegularExpressions
-@using Shared.Appointments
-@using Shared.Messages.Requests
 @inject ApiService Api
 @inject AuthService Auth
 @inject NavigationManager Nav
+@implements IDisposable
 
 <PageTitle>Dashboard – XLDent</PageTitle>
 
@@ -22,65 +19,7 @@ else
         <HxAlert Color="ThemeColor.Danger" CssClass="mb-4">@_loadError</HxAlert>
     }
 
-    <HxCard CssClass="mb-4">
-        <HeaderTemplate><strong>Agent API Keys</strong></HeaderTemplate>
-        <BodyTemplate>
-            @if (_keys.Count == 0)
-            {
-                <p class="text-muted small mb-3">No keys provisioned yet.</p>
-            }
-            else
-            {
-                <table class="table table-sm table-hover mb-3">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Agent ID</th>
-                            <th>API Key</th>
-                            <th>Created</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var k in _keys)
-                        {
-                            <tr>
-                                <td class="fw-semibold">@k.AgentId</td>
-                                <td><code class="user-select-all">@k.ApiKey</code></td>
-                                <td class="text-muted small">@k.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
-                                <td class="text-end">
-                                    <HxButton Text="Delete" Color="ThemeColor.Danger"
-                                              Size="ButtonSize.Small"
-                                              OnClick="@(() => ConfirmDeleteKey(k.AgentId))" />
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-
-            <h6 class="mb-2">Provision New Agent</h6>
-            <p class="text-muted small mb-2">Agent ID must start with a letter or digit. Letters, digits, and hyphens only — no spaces.</p>
-            <div style="max-width: 500px;">
-                <label class="form-label">Agent ID</label>
-                <div class="input-group">
-                    <InputText @bind-Value="_newAgentId" class="form-control" placeholder="my-clinic" />
-                    <HxButton Text="Generate Key" Color="ThemeColor.Primary" OnClick="CreateKey" />
-                </div>
-            </div>
-            @if (_keyError is not null)
-            {
-                <HxAlert Color="ThemeColor.Danger" CssClass="mt-2">@_keyError</HxAlert>
-            }
-            @if (_deleteConfirmAgentId is not null)
-            {
-                <HxAlert Color="ThemeColor.Warning" CssClass="mt-3 d-flex align-items-center gap-3">
-                    <span>Delete key for <strong>@_deleteConfirmAgentId</strong>? This will disconnect that agent.</span>
-                    <HxButton Text="Yes, delete" Color="ThemeColor.Danger" Size="ButtonSize.Small" OnClick="DeleteKeyConfirmed" />
-                    <HxButton Text="Cancel" Color="ThemeColor.Secondary" Size="ButtonSize.Small" OnClick="@(() => _deleteConfirmAgentId = null)" />
-                </HxAlert>
-            }
-        </BodyTemplate>
-    </HxCard>
+    <AgentKeyManager />
 
     @if (_agents.Count == 0)
     {
@@ -89,168 +28,21 @@ else
 
     @foreach (var agent in _agents)
     {
-        <HxCard CssClass="mb-4">
-            <HeaderTemplate>
-                <div class="d-flex align-items-center gap-3">
-                    <strong>Agent: @agent</strong>
-                    @if (_health.TryGetValue(agent, out var h))
-                    {
-                        var (badgeColor, icon) = h.Status switch
-                        {
-                            AgentStatus.Online   => ("success", "✓"),
-                            AgentStatus.Degraded => ("warning", "⚠"),
-                            _                    => ("secondary", "✗")
-                        };
-                        <span class="badge bg-@badgeColor">@icon @h.Status</span>
-                        <span class="text-muted small">DB: @(h.DbConnected ? "Connected" : "Disconnected")</span>
-                        @if (h.LastSeen.HasValue)
-                        {
-                            <span class="text-muted small">Last seen: @h.LastSeen.Value.ToLocalTime().ToString("HH:mm:ss")</span>
-                        }
-                    }
-                    <HxButton Text="Check Health" Color="ThemeColor.Secondary"
-                              Size="ButtonSize.Small" OnClick="@(() => CheckHealth(agent))"
-                              Spinner="@(_checkingHealth.Contains(agent))" />
-                </div>
-            </HeaderTemplate>
-            <BodyTemplate>
-                <h6 class="mb-2">Search Appointments</h6>
-                <div class="row g-2 mb-2">
-                    <div class="col-sm-6 col-md-3">
-                        <HxInputText Label="Name" @bind-Value="_search[agent].Name" Placeholder="Smith" />
-                    </div>
-                    <div class="col-sm-6 col-md-3">
-                        <HxInputText Label="Phone" @bind-Value="_search[agent].Phone" Placeholder="4141234567" />
-                    </div>
-                    <div class="col-sm-6 col-md-3">
-                        <HxInputText Label="Email" @bind-Value="_search[agent].Email" Placeholder="patient@example.com" />
-                    </div>
-                    <div class="col-sm-6 col-md-3">
-                        <HxInputText Label="Event ID" @bind-Value="_search[agent].EventId" Placeholder="UUID" />
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <HxButton Text="Search" Color="ThemeColor.Primary"
-                              Size="ButtonSize.Small" OnClick="@(() => RunSearch(agent))"
-                              Spinner="@(_searching.Contains(agent))" />
-                </div>
-
-                @if (_searchError.TryGetValue(agent, out var searchErr) && searchErr is not null)
-                {
-                    <HxAlert Color="ThemeColor.Danger" CssClass="mt-2">@searchErr</HxAlert>
-                }
-
-                @{
-                    var patients = _results.TryGetValue(agent, out var pr) ? pr : null;
-                    var allAppts = patients
-                        ?.SelectMany(p => p.Appointments.Select(a => (Patient: p, Appt: a)))
-                        .OrderByDescending(x => x.Appt.StartDate ?? DateTime.MinValue)
-                        .ThenByDescending(x => x.Appt.StartTime ?? TimeSpan.Zero)
-                        .ToList();
-                }
-
-                @if (allAppts is { Count: > 0 })
-                {
-                    <div class="table-responsive mt-2">
-                        <table class="table table-sm table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Patient</th>
-                                    <th>Provider</th>
-                                    <th>Reason</th>
-                                    <th>Status</th>
-                                    <th>Duration</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var (patient, appt) in allAppts)
-                                {
-                                    <tr>
-                                        <td class="text-nowrap">@(appt.StartDate?.ToString("yyyy-MM-dd") ?? "—")</td>
-                                        <td class="text-nowrap">
-                                            @if (appt.StartTime.HasValue)
-                                            { @($"{appt.StartTime.Value:hh\\:mm}") }
-                                            else { <span>—</span> }
-                                        </td>
-                                        <td>
-                                            <span class="fw-semibold">@patient.FullName</span>
-                                            @if (!string.IsNullOrWhiteSpace(patient.MobilePhone ?? patient.HomePhone))
-                                            {
-                                                <br /><span class="text-muted small">@(patient.MobilePhone ?? patient.HomePhone)</span>
-                                            }
-                                        </td>
-                                        <td>@(appt.ProviderName ?? "—")</td>
-                                        <td>@(appt.Reason ?? "—")</td>
-                                        <td>
-                                            @if (!string.IsNullOrWhiteSpace(appt.Status))
-                                            {
-                                                var sc = appt.Status.ToLower() switch
-                                                {
-                                                    "cancelled" or "canceled" => "secondary",
-                                                    "confirmed"               => "success",
-                                                    _                         => "light text-dark border"
-                                                };
-                                                <span class="badge bg-@sc">@appt.Status</span>
-                                            }
-                                            else { <span class="text-muted">—</span> }
-                                        </td>
-                                        <td>@(appt.Duration ?? "—")</td>
-                                        <td class="text-end">
-                                            @{
-                                                var apptDateTime = appt.StartDate.HasValue
-                                                    ? appt.StartDate.Value.Date + (appt.StartTime ?? TimeSpan.Zero)
-                                                    : (DateTime?)null;
-                                                var isPast = apptDateTime.HasValue && apptDateTime.Value < DateTime.Now;
-                                            }
-                                            @if (!isPast)
-                                            {
-                                                <HxButton Text="Cancel" Color="ThemeColor.Danger"
-                                                          Size="ButtonSize.Small"
-                                                          Spinner="@(_cancelling.Contains(appt.EventId))"
-                                                          OnClick="@(() => RunCancel(agent, appt.EventId))" />
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-                else if (allAppts is { Count: 0 })
-                {
-                    <p class="text-muted small mt-2">No appointments found.</p>
-                }
-            </BodyTemplate>
-        </HxCard>
+        <AgentCard AgentId="@agent" />
     }
 }
 
 @code {
-    List<string>      _agents  = [];
-    List<AgentKeyDto> _keys    = [];
-    readonly Dictionary<string, SearchAppointmentsRequest>       _search        = new();
-    readonly Dictionary<string, List<PatientAppointmentResult>>  _results       = new();
-    readonly Dictionary<string, string?>                         _searchError   = new();
-    readonly Dictionary<string, AgentHealthResponse>             _health        = new();
-    readonly HashSet<string>                                     _searching     = [];
-    readonly HashSet<string>                                     _checkingHealth = [];
-    readonly HashSet<string>                                     _cancelling    = [];
+    List<string> _agents    = [];
+    string?      _loadError;
 
-    string?  _deleteConfirmAgentId;
-    string   _newAgentId = string.Empty;
-    string?  _keyError;
-    string?  _loadError;
-
-    private static readonly Regex AgentIdRegex =
-        new("^[a-zA-Z0-9][a-zA-Z0-9-]*$", RegexOptions.Compiled);
+    private CancellationTokenSource? _pollCts;
 
     protected override async Task OnInitializedAsync()
     {
         if (!Auth.IsAuthenticated) { Nav.NavigateTo("/login"); return; }
         await Refresh();
+        StartPolling();
     }
 
     async Task Refresh()
@@ -259,11 +51,6 @@ else
         try
         {
             _agents = await Api.GetAgentsAsync();
-            _keys   = await Api.GetAgentKeysAsync();
-            foreach (var a in _agents)
-            {
-                _search.TryAdd(a, new SearchAppointmentsRequest());
-            }
         }
         catch (HttpRequestException)
         {
@@ -271,121 +58,34 @@ else
         }
     }
 
-    async Task CreateKey()
+    void StartPolling()
     {
-        _keyError = null;
-        var id = _newAgentId.Trim();
-        if (string.IsNullOrWhiteSpace(id))
+        _pollCts = new CancellationTokenSource();
+        var ct = _pollCts.Token;
+        _ = Task.Run(async () =>
         {
-            _keyError = "Agent ID is required.";
-            return;
-        }
-        if (!AgentIdRegex.IsMatch(id))
-        {
-            _keyError = "Agent ID must start with a letter or digit and may only contain letters, digits, and hyphens.";
-            return;
-        }
-        try
-        {
-            var created = await Api.CreateAgentKeyAsync(id);
-            _keys.Add(created);
-            _newAgentId = string.Empty;
-        }
-        catch (Refit.ApiException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
-        {
-            _keyError = $"Agent ID '{id}' already exists.";
-        }
-        catch (Refit.ApiException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
-        {
-            _keyError = await ex.GetContentAsAsync<string>() ?? "Invalid Agent ID.";
-        }
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    await timer.WaitForNextTickAsync(ct);
+                    var latest = await Api.GetAgentsAsync();
+                    if (!latest.SequenceEqual(_agents))
+                    {
+                        _agents = latest;
+                        await InvokeAsync(StateHasChanged);
+                    }
+                }
+                catch (OperationCanceledException) { break; }
+                catch { /* silently ignore poll errors */ }
+            }
+        }, ct);
     }
 
-    void ConfirmDeleteKey(string agentId)
+    public void Dispose()
     {
-        _deleteConfirmAgentId = agentId;
-    }
-
-    async Task DeleteKeyConfirmed()
-    {
-        if (_deleteConfirmAgentId is null)
-        {
-            return;
-        }
-
-        var agentId = _deleteConfirmAgentId;
-        _deleteConfirmAgentId = null;
-        await Api.DeleteAgentKeyAsync(agentId);
-        _keys.RemoveAll(k => k.AgentId == agentId);
-    }
-
-    async Task RunSearch(string agent)
-    {
-        _searchError[agent] = null;
-        _results.Remove(agent);
-        _searching.Add(agent);
-        StateHasChanged();
-        try
-        {
-            _results[agent] = await Api.SearchAppointmentsAsync(agent, _search[agent]);
-        }
-        catch (Refit.ApiException ex)
-        {
-            _searchError[agent] = $"Search failed: {(int)ex.StatusCode} {ex.ReasonPhrase}";
-        }
-        catch (Exception ex)
-        {
-            _searchError[agent] = $"Search failed: {ex.Message}";
-        }
-        finally
-        {
-            _searching.Remove(agent);
-        }
-    }
-
-    async Task RunCancel(string agent, string eventId)
-    {
-        _cancelling.Add(eventId);
-        StateHasChanged();
-        try
-        {
-            await Api.CancelAppointmentAsync(agent, eventId);
-        }
-        catch (Refit.ApiException ex)
-        {
-            _searchError[agent] = $"Cancel failed: {(int)ex.StatusCode} {ex.ReasonPhrase}";
-            _cancelling.Remove(eventId);
-            return;
-        }
-        catch (Exception ex)
-        {
-            _searchError[agent] = $"Cancel failed: {ex.Message}";
-            _cancelling.Remove(eventId);
-            return;
-        }
-        _cancelling.Remove(eventId);
-        await RunSearch(agent);
-    }
-
-    async Task CheckHealth(string agent)
-    {
-        _checkingHealth.Add(agent);
-        StateHasChanged();
-        try
-        {
-            _health[agent] = await Api.GetAgentHealthAsync(agent);
-        }
-        catch (Refit.ApiException ex)
-        {
-            _searchError[agent] = $"Health check failed: {(int)ex.StatusCode} {ex.ReasonPhrase}";
-        }
-        catch (Exception ex)
-        {
-            _searchError[agent] = $"Health check failed: {ex.Message}";
-        }
-        finally
-        {
-            _checkingHealth.Remove(agent);
-        }
+        _pollCts?.Cancel();
+        _pollCts?.Dispose();
     }
 }
