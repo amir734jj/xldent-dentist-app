@@ -23,6 +23,8 @@ var sentryDsn = builder.Configuration["Sentry:Dsn"];
 
 var loggerConfig = new LoggerConfiguration()
     .MinimumLevel.Information()
+    .Enrich.WithProperty("Application", "xldent-api")
+    .Enrich.FromLogContext()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
     .WriteTo.File(
         path: "logs/api-.log",
@@ -163,6 +165,20 @@ app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseSerilogRequestLogging(opts =>
+{
+    opts.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        var user = "anonymous";
+
+        if (httpContext.User.Identity is { IsAuthenticated: true } && !string.IsNullOrEmpty(httpContext.User.Identity.Name))
+        {
+            user = httpContext.User.Identity.Name;
+        }
+
+        diagnosticContext.Set("user", user);
+    };
+});
 app.MapControllers();
 app.MapHub<AgentHub>("/hubs/agent").AllowAnonymous();
 

@@ -11,6 +11,7 @@ using Agent;
 using Agent.Commands;
 using Agent.Connection;
 using Velopack;
+using Velopack.Locators;
 using XLDENTProxy;
 
 VelopackApp.Build().Run();
@@ -22,8 +23,14 @@ var configuration = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
+var version = VelopackLocator.Current?.CurrentlyInstalledVersion?.ToString()
+    ?? Assembly.GetEntryAssembly()?.GetName().Version?.ToString()
+    ?? "unknown";
+
 var loggerConfig = new LoggerConfiguration()
     .MinimumLevel.Information()
+    .Enrich.WithProperty("Application", "xldent-agent")
+    .Enrich.WithProperty("Version", version)
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
     .WriteTo.File(
         path: "logs/app-.log",
@@ -119,6 +126,9 @@ else
     agentConfig = AgentSetup.Prompt(savedConfig);
     configStore.SaveAgentConfig(agentConfig);
 }
+
+Log.Logger = Log.Logger
+    .ForContext("AgentId", agentConfig.AgentId);
 
 var host = new HostBuilder()
     .UseContentRoot(AppContext.BaseDirectory)
