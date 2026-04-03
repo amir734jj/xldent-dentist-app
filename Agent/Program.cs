@@ -38,6 +38,15 @@ if (!string.IsNullOrWhiteSpace(sentryDsn))
         dsn: sentryDsn,
         restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error);
 }
+
+var betterStackToken = configuration["BetterStack:SourceToken"];
+var betterStackEndpoint = configuration["BetterStack:Endpoint"]!;
+if (!string.IsNullOrWhiteSpace(betterStackToken))
+{
+    loggerConfig.WriteTo.BetterStack(
+        sourceToken: betterStackToken,
+        betterStackEndpoint: betterStackEndpoint);
+}
 #endif
 
 Log.Logger = loggerConfig.CreateLogger();

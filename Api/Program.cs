@@ -36,6 +36,15 @@ if (isProduction && !string.IsNullOrWhiteSpace(sentryDsn))
         restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error);
 }
 
+var betterStackToken = builder.Configuration["BetterStack:SourceToken"];
+var betterStackEndpoint = builder.Configuration["BetterStack:Endpoint"]!;
+if (isProduction && !string.IsNullOrWhiteSpace(betterStackToken))
+{
+    loggerConfig.WriteTo.BetterStack(
+        sourceToken: betterStackToken,
+        betterStackEndpoint: betterStackEndpoint);
+}
+
 Log.Logger = loggerConfig.CreateLogger();
 
 builder.Host.UseSerilog();
