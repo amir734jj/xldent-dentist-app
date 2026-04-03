@@ -264,7 +264,7 @@ public sealed class PatientAppointmentService(DrDataContext context) : IPatientA
                 Obs          = string.Empty,
                 OfficeId     = apptEvent.OfficeId,
             };
-            context.Faltas.Add(falta);
+            await context.Faltas.AddAsync(falta);
         }
 
         await context.SaveChangesAsync();
