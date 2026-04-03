@@ -35,4 +35,9 @@
       <PackageReference Include="Velopack" Version="0.0.1298" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+      <Content Include="appsettings.Production.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
 </Project>

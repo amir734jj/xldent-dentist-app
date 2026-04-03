@@ -1,6 +1,7 @@
 using System.Reflection;
 using CommandLine;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.Systemd;
@@ -14,6 +15,13 @@ using XLDENTProxy;
 
 VelopackApp.Build().Run();
 
+var configuration = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: true)
+    .AddJsonFile("appsettings.Production.json", optional: true)
+    .AddEnvironmentVariables()
+    .Build();
+
 var loggerConfig = new LoggerConfiguration()
     .MinimumLevel.Information()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
@@ -23,7 +31,7 @@ var loggerConfig = new LoggerConfiguration()
         outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
 
 #if !DEBUG
-var sentryDsn = Environment.GetEnvironmentVariable("SENTRY_DSN");
+var sentryDsn = configuration["Sentry:Dsn"];
 if (!string.IsNullOrWhiteSpace(sentryDsn))
 {
     loggerConfig.WriteTo.Sentry(
@@ -105,6 +113,7 @@ else
 
 var host = new HostBuilder()
     .UseContentRoot(AppContext.BaseDirectory)
+    .ConfigureAppConfiguration(c => c.AddConfiguration(configuration))
     .UseSerilog()
     .UseWindowsService(options => options.ServiceName = "XLDentAgent")
     .UseSystemd()

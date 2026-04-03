@@ -19,7 +19,7 @@ using Microsoft.OpenApi;
 var builder = WebApplication.CreateBuilder(args);
 
 var isProduction = builder.Environment.IsProduction();
-var sentryDsn = builder.Configuration.GetValue<string>("SENTRY_DSN");
+var sentryDsn = builder.Configuration["Sentry:Dsn"];
 
 var loggerConfig = new LoggerConfiguration()
     .MinimumLevel.Information()
