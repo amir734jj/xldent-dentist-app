@@ -1,6 +1,6 @@
 # XLDent Dentist App
 
-Website, agent that complements XLDent
+Website, an agent that complements XLDent
 
 ## Projects
 
