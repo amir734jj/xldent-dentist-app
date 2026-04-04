@@ -2,67 +2,103 @@ using Newtonsoft.Json;
 
 namespace Shared.Appointments;
 
-/// <summary>Full details for one appointment.</summary>
+/// <summary>
+/// Full details for one appointment.
+/// </summary>
 public sealed class AppointmentInfo
 {
-    /// <summary>Unique appointment identifier (UUID from apevents).</summary>
+    /// <summary>
+    /// Unique appointment identifier (UUID from apevents).
+    /// </summary>
     public string EventId { get; init; } = string.Empty;
 
-    /// <summary>Appointment start date.</summary>
+    /// <summary>
+    /// Appointment start date.
+    /// </summary>
     public DateTime? StartDate { get; init; }
 
-    /// <summary>Appointment start time.</summary>
+    /// <summary>
+    /// Appointment start time.
+    /// </summary>
     public TimeSpan? StartTime { get; init; }
 
-    /// <summary>Appointment end date.</summary>
+    /// <summary>
+    /// Appointment end date.
+    /// </summary>
     [JsonIgnore]
     public DateTime? EndDate { get; init; }
 
-    /// <summary>Appointment end time.</summary>
+    /// <summary>
+    /// Appointment end time.
+    /// </summary>
     [JsonIgnore]
     public TimeSpan? EndTime { get; init; }
 
-    /// <summary>Reason / title of the appointment (e.g. "Cleaning", "Implant").</summary>
+    /// <summary>
+    /// Reason / title of the appointment (e.g. "Cleaning", "Implant").
+    /// </summary>
     public string? Reason { get; init; }
 
-    /// <summary>Appointment status (e.g. "Confirmed", "Cancelled").</summary>
+    /// <summary>
+    /// Appointment status (e.g. "Confirmed", "Cancelled").
+    /// </summary>
     public string? Status { get; init; }
 
-    /// <summary>Event type label (e.g. "Appt", "Block").</summary>
+    /// <summary>
+    /// Event type label (e.g. "Appt", "Block").
+    /// </summary>
     [JsonIgnore]
     public string? EventType { get; init; }
 
-    /// <summary>Free-text notes attached to the appointment.</summary>
+    /// <summary>
+    /// Free-text notes attached to the appointment.
+    /// </summary>
     [JsonIgnore]
     public string? Notes { get; init; }
 
-    /// <summary>Physical location / operatory where the appointment takes place.</summary>
+    /// <summary>
+    /// Physical location / operatory where the appointment takes place.
+    /// </summary>
     [JsonIgnore]
     public string? Location { get; init; }
 
-    /// <summary>True when the appointment occupies the entire day with no specific times.</summary>
+    /// <summary>
+    /// True when the appointment occupies the entire day with no specific times.
+    /// </summary>
     [JsonIgnore]
     public bool? AllDay { get; init; }
 
-    /// <summary>Category tag assigned to the appointment.</summary>
+    /// <summary>
+    /// Category tag assigned to the appointment.
+    /// </summary>
     [JsonIgnore]
     public string? Category { get; init; }
 
-    /// <summary>Scheduled duration (e.g. "60" minutes, stored as a string in the database).</summary>
+    /// <summary>
+    /// Scheduled duration (e.g. "60" minutes, stored as a string in the database).
+    /// </summary>
     public string? Duration { get; init; }
 
-    /// <summary>Full name of the provider (dentist / hygienist) assigned to the appointment.</summary>
+    /// <summary>
+    /// Full name of the provider (dentist / hygienist) assigned to the appointment.
+    /// </summary>
     public string? ProviderName { get; init; }
 
-    /// <summary>Time the patient arrived at the practice.</summary>
+    /// <summary>
+    /// Time the patient arrived at the practice.
+    /// </summary>
     [JsonIgnore]
     public TimeSpan? ArrivedTime { get; init; }
 
-    /// <summary>Time the patient was seated in the operatory.</summary>
+    /// <summary>
+    /// Time the patient was seated in the operatory.
+    /// </summary>
     [JsonIgnore]
     public TimeSpan? SeatedTime { get; init; }
 
-    /// <summary>Time the patient was dismissed / left the practice.</summary>
+    /// <summary>
+    /// Time the patient was dismissed / left the practice.
+    /// </summary>
     [JsonIgnore]
     public TimeSpan? DismissedTime { get; init; }
 }

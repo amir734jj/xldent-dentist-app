@@ -6,6 +6,7 @@ using Refit;
 using Serilog;
 using Serilog.Events;
 using Shared.Contracts;
+using Shared.Contracts.Interfaces;
 using UI;
 using UI.Services;
 

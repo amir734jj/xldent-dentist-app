@@ -4,7 +4,9 @@ namespace Api.Data.Entities;
 
 public sealed class AgentApiKey : IEntity
 {
-    /// <summary>The API key — also serves as the primary key.</summary>
+    /// <summary>
+    /// The API key — also serves as the primary key.
+    /// </summary>
     public Guid Id { get; set; } = Guid.NewGuid();
 
     public Guid   UserId     { get; set; }

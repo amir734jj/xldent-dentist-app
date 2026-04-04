@@ -2,7 +2,7 @@ using Refit;
 using Shared.Appointments;
 using Shared.Messages.Requests;
 
-namespace Shared.Contracts;
+namespace Shared.Contracts.Interfaces;
 
 [Headers("Authorization: Bearer")]
 public interface IAgentsApi

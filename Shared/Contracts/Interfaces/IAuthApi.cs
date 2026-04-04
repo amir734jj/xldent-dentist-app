@@ -1,6 +1,6 @@
 using Refit;
 
-namespace Shared.Contracts;
+namespace Shared.Contracts.Interfaces;
 
 public interface IAuthApi
 {

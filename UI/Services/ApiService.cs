@@ -1,6 +1,7 @@
 using Refit;
 using Shared.Appointments;
 using Shared.Contracts;
+using Shared.Contracts.Interfaces;
 using Shared.Messages.Requests;
 
 namespace UI.Services;

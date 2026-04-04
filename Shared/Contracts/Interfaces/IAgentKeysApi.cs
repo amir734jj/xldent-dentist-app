@@ -1,6 +1,6 @@
 using Refit;
 
-namespace Shared.Contracts;
+namespace Shared.Contracts.Interfaces;
 
 [Headers("Authorization: Bearer")]
 public interface IAgentKeysApi
