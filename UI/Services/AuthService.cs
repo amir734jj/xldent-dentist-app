@@ -5,13 +5,22 @@ namespace UI.Services;
 
 public sealed class AuthService(ILocalStorageService storage)
 {
-    private const string TokenKey  = "auth_token";
-    private const string RoleKey   = "auth_role";
-    private const string UserIdKey = "auth_userid";
+    private const string TokenKey       = "auth_token";
+    private const string RoleKey        = "auth_role";
+    private const string UserIdKey      = "auth_userid";
+    private const string DisplayNameKey = "auth_displayname";
 
-    public string? Token  { get; private set; }
-    public string? Role   { get; private set; }
-    public Guid?   UserId { get; private set; }
+    public string? Token       { get; private set; }
+    public string? Role        { get; private set; }
+    public Guid?   UserId      { get; private set; }
+    public string? DisplayName { get; private set; }
+
+    /// <summary>
+    /// The name shown in the navbar: DisplayName if set, otherwise the email prefix from the token, otherwise Role.
+    /// </summary>
+    public string DisplayLabel => !string.IsNullOrWhiteSpace(DisplayName) ? DisplayName
+        : !string.IsNullOrWhiteSpace(Role) ? Role
+        : "there";
 
     public bool IsAuthenticated => Token is not null;
 
@@ -21,9 +30,10 @@ public sealed class AuthService(ILocalStorageService storage)
 
     public async Task InitAsync()
     {
-        Token  = await storage.GetItemAsync<string>(TokenKey);
-        Role   = await storage.GetItemAsync<string>(RoleKey);
-        UserId = await storage.GetItemAsync<Guid?>(UserIdKey);
+        Token       = await storage.GetItemAsync<string>(TokenKey);
+        Role        = await storage.GetItemAsync<string>(RoleKey);
+        UserId      = await storage.GetItemAsync<Guid?>(UserIdKey);
+        DisplayName = await storage.GetItemAsync<string>(DisplayNameKey);
     }
 
     public async Task SetTokenAsync(string token, string role, Guid userId)
@@ -37,14 +47,23 @@ public sealed class AuthService(ILocalStorageService storage)
         await storage.SetItemAsync(UserIdKey, userId);
     }
 
+    public async Task SetDisplayNameAsync(string? displayName)
+    {
+        DisplayName = displayName;
+        AuthStateChanged?.Invoke();
+        await storage.SetItemAsync(DisplayNameKey, displayName);
+    }
+
     public async Task ClearTokenAsync()
     {
-        Token  = null;
-        Role   = null;
-        UserId = null;
+        Token       = null;
+        Role        = null;
+        UserId      = null;
+        DisplayName = null;
         AuthStateChanged?.Invoke();
         await storage.RemoveItemAsync(TokenKey);
         await storage.RemoveItemAsync(RoleKey);
         await storage.RemoveItemAsync(UserIdKey);
+        await storage.RemoveItemAsync(DisplayNameKey);
     }
 }

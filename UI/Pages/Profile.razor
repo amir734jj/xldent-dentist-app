@@ -1,0 +1,81 @@
+@page "/profile"
+@inject ApiService Api
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inject IHxMessengerService Messenger
+
+<PageTitle>Profile – XLDent</PageTitle>
+
+@if (!Auth.IsAuthenticated)
+{
+    <p>Redirecting...</p>
+}
+else
+{
+    <h4 class="mb-4">Profile</h4>
+
+    @if (_profile is not null)
+    {
+        <div class="d-flex flex-column gap-4" style="max-width: 480px;">
+
+            <HxCard>
+                <HeaderTemplate>Display Name</HeaderTemplate>
+                <BodyTemplate>
+                    <EditForm Model="_nameModel" OnValidSubmit="SaveName">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input class="form-control" value="@_profile.Email" disabled />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Display Name</label>
+                            <InputText class="form-control" @bind-Value="_nameModel.DisplayName" placeholder="Your name" />
+                        </div>
+                        <HxSubmit Text="Save" Color="ThemeColor.Primary" />
+                    </EditForm>
+                </BodyTemplate>
+            </HxCard>
+
+            <HxCard>
+                <BodyTemplate>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span>Password</span>
+                        <HxButton Text="Change Password" Color="ThemeColor.Secondary" Size="ButtonSize.Small"
+                                  OnClick="@(() => Nav.NavigateTo("/profile/change-password"))" />
+                    </div>
+                </BodyTemplate>
+            </HxCard>
+
+        </div>
+    }
+}
+
+@code {
+    MeResponse? _profile;
+    NameModel _nameModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Auth.IsAuthenticated)
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+
+        _profile = await Api.GetProfileAsync();
+        _nameModel.DisplayName = _profile.DisplayName;
+    }
+
+    async Task SaveName()
+    {
+        await Api.UpdateProfileAsync(_nameModel.DisplayName);
+        _profile = _profile! with { DisplayName = _nameModel.DisplayName };
+        Messenger.AddInformation(title: null, message: "Display name updated.");
+    }
+
+    class NameModel
+    {
+        public string? DisplayName { get; set; }
+    }
+}
+

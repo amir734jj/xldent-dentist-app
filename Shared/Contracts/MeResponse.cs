@@ -1,3 +1,3 @@
 namespace Shared.Contracts;
 
-public record MeResponse(string Email);
+public record MeResponse(string Email, string? DisplayName);

@@ -82,10 +82,11 @@ public sealed class AuthController(
 
     [HttpGet("me")]
     [Authorize]
-    public IActionResult Me()
+    public async Task<IActionResult> Me()
     {
-        var email = User.GetEmail();
-        return Ok(new MeResponse(email!));
+        var user = await users.FindByIdAsync(User.GetUserId().ToString());
+        if (user is null) return NotFound();
+        return Ok(new MeResponse(user.Email!, user.DisplayName));
     }
 
     private string BuildToken(User user, string role)

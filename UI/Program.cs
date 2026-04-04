@@ -1,5 +1,6 @@
 using Blazored.LocalStorage;
 using Havit.Blazor.Components.Web;
+using Havit.Blazor.Components.Web.Bootstrap;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Refit;
@@ -34,7 +35,8 @@ builder.Services.AddTransient<BearerTokenHandler>();
 
 builder.Services
     .AddRefitClient<IAuthApi>()
-    .ConfigureHttpClient(c => c.BaseAddress = new Uri(apiBaseUrl));
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri(apiBaseUrl))
+    .AddHttpMessageHandler<BearerTokenHandler>();
 
 builder.Services
     .AddRefitClient<IAgentsApi>()
@@ -51,14 +53,32 @@ builder.Services
     .ConfigureHttpClient(c => c.BaseAddress = new Uri(apiBaseUrl))
     .AddHttpMessageHandler<BearerTokenHandler>();
 
+builder.Services
+    .AddRefitClient<IProfileApi>()
+    .ConfigureHttpClient(c => c.BaseAddress = new Uri(apiBaseUrl))
+    .AddHttpMessageHandler<BearerTokenHandler>();
+
 builder.Services.AddScoped<ApiService>();
 builder.Services.AddBlazoredLocalStorageAsSingleton();
 builder.Services.AddHxServices();
 builder.Services.AddHxMessenger();
+builder.Services.AddHxMessageBoxHost();
 
 var host = builder.Build();
 
 var auth = host.Services.GetRequiredService<AuthService>();
 await auth.InitAsync();
+
+// Refresh display name from the server if already logged in
+if (auth.IsAuthenticated)
+{
+    try
+    {
+        var api = host.Services.GetRequiredService<ApiService>();
+        var me = await api.GetProfileAsync();
+        await auth.SetDisplayNameAsync(me.DisplayName);
+    }
+    catch { /* token may be expired; ignore */ }
+}
 
 await host.RunAsync();

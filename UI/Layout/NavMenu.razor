@@ -15,7 +15,8 @@
         </HxNav>
         @if (Auth.IsAuthenticated)
         {
-            <span class="navbar-text text-white-50 me-2">@Auth.Role</span>
+            <span class="navbar-text text-white-50 me-2">Hi, @Auth.DisplayLabel</span>
+            <HxButton Text="Profile" Color="ThemeColor.Secondary" Size="ButtonSize.Small" CssClass="me-1" OnClick="@(() => Nav.NavigateTo("/profile"))" />
             <HxButton Text="Logout" Color="ThemeColor.Danger" Size="ButtonSize.Small" OnClick="Logout" />
         }
     </HxNavbarCollapse>

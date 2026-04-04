@@ -2,6 +2,7 @@
 @inject ApiService Api
 @inject AuthService Auth
 @inject NavigationManager Nav
+@inject IHxMessageBoxService MessageBox
 
 <PageTitle>User Management – XLDent</PageTitle>
 
@@ -29,25 +30,16 @@ else
     }
     else
     {
-        <HxCard>
-            <BodyTemplate>
-                <table class="table table-sm table-bordered mb-0">
-                    <thead>
-                        <tr>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Status</th>
-                            <th>Last Login</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var u in _users)
-                        {
-                            <tr>
-                                <td>@u.Email</td>
-                                <td>@string.Join(", ", u.Roles)</td>
-                                <td>
+        <div class="d-flex flex-column gap-3">
+            @foreach (var u in _users)
+            {
+                <HxCard>
+                    <BodyTemplate>
+                        <div class="d-flex flex-wrap align-items-start gap-2">
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold text-break">@u.Email</div>
+                                <div class="d-flex flex-wrap gap-2 mt-1">
+                                    <span class="badge bg-secondary">@string.Join(", ", u.Roles)</span>
                                     @if (u.IsActive)
                                     {
                                         <span class="badge bg-success">Active</span>
@@ -56,48 +48,61 @@ else
                                     {
                                         <span class="badge bg-warning text-dark">Pending</span>
                                     }
-                                </td>
-                                <td>
                                     @if (u.LastLoginAt.HasValue)
                                     {
-                                        <span title="@u.LastLoginAt.Value.ToLocalTime().ToString("f")">
-                                            @u.LastLoginAt.Value.ToLocalTime().ToString("MMM d, yyyy HH:mm")
-                                        </span>
+                                        <small class="text-muted" title="@u.LastLoginAt.Value.ToLocalTime().ToString("f")">
+                                            Last login: @u.LastLoginAt.Value.ToLocalTime().ToString("MMM d, yyyy HH:mm")
+                                        </small>
                                     }
                                     else
                                     {
-                                        <span class="text-muted">Never</span>
+                                        <small class="text-muted">Never logged in</small>
                                     }
-                                </td>
-                                <td class="d-flex gap-1">
-                                    @if (u.IsActive)
-                                    {
-                                        var isSelf = u.Id == Auth.UserId;
-                                        <HxButton Text="Deactivate" Color="ThemeColor.Warning"
-                                                  Size="ButtonSize.Small"
-                                                  Enabled="@(!isSelf)"
-                                                  title="@(isSelf ? "You cannot deactivate your own account" : null)"
-                                                  OnClick="@(() => Toggle(u, false))" />
-                                    }
-                                    else
-                                    {
-                                        <HxButton Text="Activate" Color="ThemeColor.Success"
-                                                  Size="ButtonSize.Small"
-                                                  OnClick="@(() => Toggle(u, true))" />
-                                    }
-                                    @{ var isSelfDelete = u.Id == Auth.UserId; }
-                                    <HxButton Text="Delete" Color="ThemeColor.Danger"
+                                </div>
+                            </div>
+                            <div class="d-flex flex-wrap gap-1">
+                                @if (u.Roles.Contains("Admin"))
+                                {
+                                    var isSelfDemote = u.Id == Auth.UserId;
+                                    <HxButton Text="Make User" Color="ThemeColor.Secondary"
                                               Size="ButtonSize.Small"
-                                              Enabled="@(!isSelfDelete)"
-                                              title="@(isSelfDelete ? "You cannot delete your own account" : null)"
-                                              OnClick="@(() => Delete(u))" />
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </BodyTemplate>
-        </HxCard>
+                                              Enabled="@(!isSelfDemote)"
+                                              title="@(isSelfDemote ? "You cannot demote your own account" : null)"
+                                              OnClick="@(() => SetRole(u, false))" />
+                                }
+                                else
+                                {
+                                    <HxButton Text="Make Admin" Color="ThemeColor.Primary"
+                                              Size="ButtonSize.Small"
+                                              OnClick="@(() => SetRole(u, true))" />
+                                }
+                                @if (u.IsActive)
+                                {
+                                    var isSelf = u.Id == Auth.UserId;
+                                    <HxButton Text="Deactivate" Color="ThemeColor.Warning"
+                                              Size="ButtonSize.Small"
+                                              Enabled="@(!isSelf)"
+                                              title="@(isSelf ? "You cannot deactivate your own account" : null)"
+                                              OnClick="@(() => Toggle(u, false))" />
+                                }
+                                else
+                                {
+                                    <HxButton Text="Activate" Color="ThemeColor.Success"
+                                              Size="ButtonSize.Small"
+                                              OnClick="@(() => Toggle(u, true))" />
+                                }
+                                @{ var isSelfDelete = u.Id == Auth.UserId; }
+                                <HxButton Text="Delete" Color="ThemeColor.Danger"
+                                          Size="ButtonSize.Small"
+                                          Enabled="@(!isSelfDelete)"
+                                          title="@(isSelfDelete ? "You cannot delete your own account" : null)"
+                                          OnClick="@(() => Delete(u))" />
+                            </div>
+                        </div>
+                    </BodyTemplate>
+                </HxCard>
+            }
+        </div>
     }
 }
 
@@ -118,11 +123,25 @@ else
 
     async Task Load()
     {
-        _loading = true; _error = null;
-        try { _users = await Api.GetUsersAsync(); }
-        catch (Refit.ApiException ex) { _error = $"Failed to load users. API error {(int)ex.StatusCode}: {ex.ReasonPhrase}"; }
-        catch (Exception ex) { _error = $"Failed to load users: {ex.Message}"; }
-        finally { _loading = false; }
+        _loading = true;
+        _error = null;
+        
+        try
+        {
+            _users = await Api.GetUsersAsync();
+        }
+        catch (Refit.ApiException ex)
+        {
+            _error = $"Failed to load users. API error {(int)ex.StatusCode}: {ex.ReasonPhrase}";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to load users: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     async Task Toggle(UserDto user, bool activate)
@@ -130,22 +149,59 @@ else
         try
         {
             if (activate)
+            {
                 await Api.ActivateUserAsync(user.Id);
+            }
             else
+            {
                 await Api.DeactivateUserAsync(user.Id);
+            }
 
             await Load();
         }
-        catch { _error = "Failed to update user."; }
+        catch
+        {
+            _error = "Failed to update user.";
+        }
     }
 
     async Task Delete(UserDto user)
     {
+        var confirmed = await MessageBox.ConfirmAsync("Delete Account", $"Are you sure you want to delete {user.Email}? This cannot be undone.");
+        if (!confirmed)
+        {
+            return;
+        }
+
         try
         {
             await Api.DeleteUserAsync(user.Id);
             await Load();
         }
-        catch { _error = "Failed to delete user."; }
+        catch
+        {
+            _error = "Failed to delete user.";
+        }
+    }
+
+    async Task SetRole(UserDto user, bool makeAdmin)
+    {
+        try
+        {
+            if (makeAdmin)
+            {
+                await Api.MakeAdminAsync(user.Id);
+            }
+            else
+            {
+                await Api.MakeUserAsync(user.Id);
+            }
+
+            await Load();
+        }
+        catch
+        {
+            _error = "Failed to update user role.";
+        }
     }
 }

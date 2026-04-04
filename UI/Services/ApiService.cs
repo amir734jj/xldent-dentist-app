@@ -6,7 +6,7 @@ using Shared.Messages.Requests;
 
 namespace UI.Services;
 
-public sealed class ApiService(IAuthApi authApi, IAgentsApi agentsApi, IAgentKeysApi agentKeysApi, IUsersApi usersApi, AuthService auth)
+public sealed class ApiService(IAuthApi authApi, IAgentsApi agentsApi, IAgentKeysApi agentKeysApi, IUsersApi usersApi, IProfileApi profileApi, AuthService auth)
 {
     // Returns null on success, or an error message string.
     public async Task<string?> LoginAsync(string email, string password)
@@ -15,6 +15,13 @@ public sealed class ApiService(IAuthApi authApi, IAgentsApi agentsApi, IAgentKey
         {
             var response = await authApi.LoginAsync(new LoginRequest(email, password));
             await auth.SetTokenAsync(response.Token, response.Role, response.UserId);
+            // Fetch display name now that we have a token
+            try
+            {
+                var me = await authApi.MeAsync();
+                await auth.SetDisplayNameAsync(me.DisplayName);
+            }
+            catch { /* non-critical */ }
             return null;
         }
         catch (ApiException ex) when ((int)ex.StatusCode == 403)
@@ -96,5 +103,32 @@ public sealed class ApiService(IAuthApi authApi, IAgentsApi agentsApi, IAgentKey
     public Task DeleteUserAsync(Guid id)
     {
         return usersApi.DeleteAsync(id);
+    }
+
+    public Task MakeAdminAsync(Guid id)
+    {
+        return usersApi.MakeAdminAsync(id);
+    }
+
+    public Task MakeUserAsync(Guid id)
+    {
+        return usersApi.MakeUserAsync(id);
+    }
+
+    // Profile
+    public Task<MeResponse> GetProfileAsync()
+    {
+        return authApi.MeAsync();
+    }
+
+    public async Task UpdateProfileAsync(string? displayName)
+    {
+        await profileApi.UpdateAsync(new UpdateProfileRequest(displayName));
+        await auth.SetDisplayNameAsync(displayName);
+    }
+
+    public Task ChangePasswordAsync(string currentPassword, string newPassword, string newPasswordConfirm)
+    {
+        return profileApi.ChangePasswordAsync(new ChangePasswordRequest(currentPassword, newPassword, newPasswordConfirm));
     }
 }

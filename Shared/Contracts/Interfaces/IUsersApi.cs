@@ -19,4 +19,12 @@ public interface IUsersApi
     [Delete("/api/users/{id}")]
     [Headers("Authorization: Bearer")]
     Task DeleteAsync(Guid id);
+
+    [Post("/api/users/{id}/make-admin")]
+    [Headers("Authorization: Bearer")]
+    Task MakeAdminAsync(Guid id);
+
+    [Post("/api/users/{id}/make-user")]
+    [Headers("Authorization: Bearer")]
+    Task MakeUserAsync(Guid id);
 }

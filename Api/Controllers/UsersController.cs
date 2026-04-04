@@ -78,4 +78,37 @@ public sealed class UsersController(UserManager<User> users) : ControllerBase
         await users.DeleteAsync(user);
         return NoContent();
     }
+
+    [HttpPost("{id:guid}/make-admin")]
+    public async Task<IActionResult> MakeAdmin(Guid id)
+    {
+        var user = await users.FindByIdAsync(id.ToString());
+        if (user is null) return NotFound();
+
+        if (!await users.IsInRoleAsync(user, Roles.Admin))
+        {
+            await users.AddToRoleAsync(user, Roles.Admin);
+            await users.RemoveFromRoleAsync(user, Roles.User);
+        }
+
+        return Ok();
+    }
+
+    [HttpPost("{id:guid}/make-user")]
+    public async Task<IActionResult> MakeUser(Guid id)
+    {
+        if (id == CurrentUserId)
+            return BadRequest("You cannot demote your own account.");
+
+        var user = await users.FindByIdAsync(id.ToString());
+        if (user is null) return NotFound();
+
+        if (!await users.IsInRoleAsync(user, Roles.User))
+        {
+            await users.AddToRoleAsync(user, Roles.User);
+            await users.RemoveFromRoleAsync(user, Roles.Admin);
+        }
+
+        return Ok();
+    }
 }
