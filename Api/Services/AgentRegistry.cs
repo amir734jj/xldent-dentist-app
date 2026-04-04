@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Shared.Contracts;
 
 namespace Api.Services;
 
@@ -43,17 +44,17 @@ public sealed class AgentRegistry
         return _agents.Keys.ToList();
     }
 
-    public (string Status, DateTimeOffset? LastSeen, bool DbConnected) GetHealth(string agentId)
+    public (AgentStatus Status, DateTimeOffset? LastSeen, bool DbConnected) GetHealth(string agentId)
     {
         if (!_agents.TryGetValue(agentId, out var entry))
         {
-            return ("offline", null, false);
+            return (AgentStatus.Offline, null, false);
         }
 
         var staleCutoff = DateTimeOffset.UtcNow.AddSeconds(-60);
-        var status = entry.LastSeen < staleCutoff ? "offline"
-            : entry.DbConnected ? "online"
-            : "degraded";
+        var status = entry.LastSeen < staleCutoff ? AgentStatus.Offline
+            : entry.DbConnected ? AgentStatus.Online
+            : AgentStatus.Degraded;
 
         return (status, entry.LastSeen, entry.DbConnected);
     }
