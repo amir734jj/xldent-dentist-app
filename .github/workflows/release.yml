@@ -9,6 +9,8 @@ env:
   DOTNET_VERSION: '10.0.x'
   VERSION_PREFIX: '1.0'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  AZURE_CODESIGNING_ACCOUNT: xldent-account
+  AZURE_CODESIGNING_PROFILE: hesamian
 
 jobs:
   create-release:
@@ -80,6 +82,22 @@ jobs:
           -o publish/${{ matrix.rid }}
 
 
+      - name: Sign Agent executable
+        if: matrix.rid == 'win-x64'
+        uses: azure/trusted-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_CODESIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ env.AZURE_CODESIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ env.AZURE_CODESIGNING_PROFILE }}
+          files-folder: publish/win-x64
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
       - name: Pack
         shell: bash
         run: >
@@ -89,6 +107,22 @@ jobs:
           --packDir     publish/${{ matrix.rid }}
           --mainExe     ${{ matrix.mainExe }}
           --outputDir   releases/${{ matrix.rid }}
+
+      - name: Sign Velopack artifacts
+        if: matrix.rid == 'win-x64'
+        uses: azure/trusted-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_CODESIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ env.AZURE_CODESIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ env.AZURE_CODESIGNING_PROFILE }}
+          files-folder: releases/win-x64
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
 
       - name: Upload to GitHub Release
         shell: bash
