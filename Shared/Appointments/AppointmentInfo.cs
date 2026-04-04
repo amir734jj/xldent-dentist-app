@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace Shared.Appointments;
 
 /// <summary>Full details for one appointment.</summary>
@@ -13,9 +15,11 @@ public sealed class AppointmentInfo
     public TimeSpan? StartTime { get; init; }
 
     /// <summary>Appointment end date.</summary>
+    [JsonIgnore]
     public DateTime? EndDate { get; init; }
 
     /// <summary>Appointment end time.</summary>
+    [JsonIgnore]
     public TimeSpan? EndTime { get; init; }
 
     /// <summary>Reason / title of the appointment (e.g. "Cleaning", "Implant").</summary>
@@ -25,18 +29,23 @@ public sealed class AppointmentInfo
     public string? Status { get; init; }
 
     /// <summary>Event type label (e.g. "Appt", "Block").</summary>
+    [JsonIgnore]
     public string? EventType { get; init; }
 
     /// <summary>Free-text notes attached to the appointment.</summary>
+    [JsonIgnore]
     public string? Notes { get; init; }
 
     /// <summary>Physical location / operatory where the appointment takes place.</summary>
+    [JsonIgnore]
     public string? Location { get; init; }
 
     /// <summary>True when the appointment occupies the entire day with no specific times.</summary>
+    [JsonIgnore]
     public bool? AllDay { get; init; }
 
     /// <summary>Category tag assigned to the appointment.</summary>
+    [JsonIgnore]
     public string? Category { get; init; }
 
     /// <summary>Scheduled duration (e.g. "60" minutes, stored as a string in the database).</summary>
@@ -46,11 +55,14 @@ public sealed class AppointmentInfo
     public string? ProviderName { get; init; }
 
     /// <summary>Time the patient arrived at the practice.</summary>
+    [JsonIgnore]
     public TimeSpan? ArrivedTime { get; init; }
 
     /// <summary>Time the patient was seated in the operatory.</summary>
+    [JsonIgnore]
     public TimeSpan? SeatedTime { get; init; }
 
     /// <summary>Time the patient was dismissed / left the practice.</summary>
+    [JsonIgnore]
     public TimeSpan? DismissedTime { get; init; }
 }

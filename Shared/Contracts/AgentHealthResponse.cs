@@ -6,4 +6,5 @@ public record AgentHealthResponse(
     DateTimeOffset? LastSeen,
     bool DbConnected,
     string? Version,
-    DateTimeOffset? UpdatedAt);
+    DateTimeOffset? UpdatedAt,
+    DateTimeOffset? StartedAt);

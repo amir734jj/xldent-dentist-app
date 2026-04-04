@@ -8,7 +8,6 @@ namespace Agent.Connection;
 
 public static class UpdateService
 {
-
     public static async Task CheckAndApplyUpdatesAsync()
     {
         if (string.IsNullOrWhiteSpace(AppConstants.GitHubRepoUrl))

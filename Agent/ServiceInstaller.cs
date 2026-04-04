@@ -114,6 +114,32 @@ internal static class ServiceInstaller
         Log.Information("Done. Service '{ServiceName}' removed.", ServiceName);
     }
 
+    public static bool IsInstalled()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            var psi = new ProcessStartInfo("sc.exe", $"query {ServiceName}")
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            using var p = Process.Start(psi)!;
+            p.WaitForExit();
+            return p.ExitCode == 0;
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            var unitPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".config", "systemd", "user", $"{ServiceName}.service");
+            return File.Exists(unitPath);
+        }
+
+        return false;
+    }
+
     private static void Run(string cmd, string arguments)
     {
         var psi = new ProcessStartInfo(cmd, arguments)

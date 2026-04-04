@@ -10,8 +10,8 @@ using Serilog;
 using Agent;
 using Agent.Commands;
 using Agent.Connection;
+using Spectre.Console;
 using Velopack;
-using Velopack.Locators;
 using XLDENTProxy;
 
 VelopackApp.Build().Run();
@@ -23,9 +23,7 @@ var configuration = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-var version = VelopackLocator.Current?.CurrentlyInstalledVersion?.ToString()
-    ?? Assembly.GetEntryAssembly()?.GetName().Version?.ToString()
-    ?? "unknown";
+var version = AgentVersion.Get();
 
 var loggerConfig = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -35,6 +33,7 @@ var loggerConfig = new LoggerConfiguration()
     .WriteTo.File(
         path: "logs/app-.log",
         rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7,
         outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
 
 #if !DEBUG
@@ -125,6 +124,21 @@ else
     var savedConfig = configStore.GetAgentConfig();
     agentConfig = AgentSetup.Prompt(savedConfig);
     configStore.SaveAgentConfig(agentConfig);
+}
+
+if (!isService && !ServiceInstaller.IsInstalled())
+{
+    AnsiConsole.WriteLine();
+    AnsiConsole.Write(new Rule("[bold blue]Service Installation[/]").RuleStyle("grey"));
+    AnsiConsole.WriteLine();
+
+    if (AnsiConsole.Confirm("Install XLDent Agent as a system service?", defaultValue: false))
+    {
+        ServiceInstaller.Install();
+        return;
+    }
+
+    AnsiConsole.WriteLine();
 }
 
 Log.Logger = Log.Logger

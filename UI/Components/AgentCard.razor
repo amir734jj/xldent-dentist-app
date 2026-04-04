@@ -10,11 +10,11 @@
             {
                 var (badgeColor, icon) = _health.Status switch
                 {
-                    AgentStatus.Online   => ("success", "✓"),
-                    AgentStatus.Degraded => ("warning", "⚠"),
-                    _                    => ("secondary", "✗")
+                    AgentStatus.Online   => ("success",   BootstrapIcon.CheckCircleFill),
+                    AgentStatus.Degraded => ("warning",   BootstrapIcon.ExclamationTriangleFill),
+                    _                    => ("secondary", BootstrapIcon.XCircleFill)
                 };
-                <span class="badge bg-@badgeColor">@icon @_health.Status</span>
+                <span class="badge bg-@badgeColor"><HxIcon Icon="@icon" /> @_health.Status</span>
                 <span class="text-muted small">DB: @(_health.DbConnected ? "Connected" : "Disconnected")</span>
                 @if (!string.IsNullOrWhiteSpace(_health.Version))
                 {
@@ -23,6 +23,10 @@
                 @if (_health.UpdatedAt.HasValue)
                 {
                     <span class="text-muted small">Updated: @_health.UpdatedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                }
+                @if (_health.StartedAt.HasValue)
+                {
+                    <span class="text-muted small">Started: @_health.StartedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
                 }
                 @if (_health.LastSeen.HasValue)
                 {

@@ -43,13 +43,14 @@ var loggerConfig = new LoggerConfiguration()
     .WriteTo.File(
         path: "logs/api-.log",
         rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7,
         outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
 
 if (isProduction && !string.IsNullOrWhiteSpace(sentryDsn))
 {
     loggerConfig.WriteTo.Sentry(
         dsn: sentryDsn,
-        restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error);
+        restrictedToMinimumLevel: LogEventLevel.Error);
 }
 
 var betterStackToken = builder.Configuration["BetterStack:SourceToken"];

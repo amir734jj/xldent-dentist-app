@@ -32,10 +32,10 @@ public sealed class UpdateWorker(ILogger<UpdateWorker> logger) : BackgroundServi
 
             logger.LogInformation("Update available: v{Version}. Downloading…", newVersion.TargetFullRelease.Version);
             await mgr.DownloadUpdatesAsync(newVersion);
-            logger.LogInformation("Update downloaded. Restarting process to apply v{Version}.", newVersion.TargetFullRelease.Version);
+            logger.LogInformation("Update downloaded. Exiting for service manager to restart with v{Version}.", newVersion.TargetFullRelease.Version);
 
-            // Replaces files on disk and exits. The SCM restart policy brings the service back up with the new binary.
-            mgr.ApplyUpdatesAndRestart(newVersion);
+            // Exit cleanly — the SCM restart policy brings the service back up with the new binary.
+            mgr.ApplyUpdatesAndExit(newVersion);
         }
         catch (Exception ex)
         {
